@@ -253,10 +253,13 @@ class PyrometerLW(Pyrometer):
         return (pyro_head_id)
 
     def Get_nb_of_head(self):                                           # Anzahl der Sensoren an der Box    
-        p = '00oc\r'
-        self.ser_py.write(p.encode())
-        pyro_head_nb = self.ser_py.readline().decode().replace('\r','')
-        return (pyro_head_nb)
+        if not test_on:
+            p = '00oc\r'
+            self.ser_py.write(p.encode())
+            pyro_head_nb = self.ser_py.readline().decode().replace('\r','')
+            return (pyro_head_nb)
+        else:
+            return 0
 
     def get_OK(self):
         answer = self.ser_py.readline().decode()

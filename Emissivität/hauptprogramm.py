@@ -67,7 +67,7 @@ def Init_File():                                                          # Erst
 
     # Öffnen und Erstellen der Datei *temp.txt:
     with open(Folder + '/' + FileOutName,"w", encoding="utf-8") as fo:                 
-        fo.write("Temperaturdaten der Heizplatte\n") 
+        fo.write("Temperaturdaten der Geräte\n") 
         fo.write(f"Datum: {actual_date}\n\n")
         fo.write(f"Version: {version}\n\n")
         fo.write("\nabs. Zeit".ljust(15) + "rel. Zeit [s]".ljust(20))
@@ -141,10 +141,10 @@ def Init_File():                                                          # Erst
 def fenster_GUI():                                                        # Enthält die Eingabefelder und Knöpfe für die Schaltoberfläche! 
 ###########################################################################  
     '''
-    Die Abkürzungen stammen noch aus dem alten Programmcode von https://github.com/nemocrys/exp-T-control.
+    Die Abkürzungen stammen noch aus dem alten Programmcode von https://github.com/nemocrys/exp-T-control. Zum Beispiel ändert sich in dem neuen Code die bedeutung von Hp.
     Pt steht nun für Regelsensor, da dieser nun auch Ausgetauscht werden kann (Pt100, Pt1000 oder Thermoelement).
-    Hp steht für den Heizplatten Sensor von IKA.
-    PY steht für das Diagramm mit den Pyrometer und Adafruit Modulen. 
+    Hp steht für das Extra Diagramm was je nach Heizer Wahl andere Parameter beinhaltet.
+    Py steht für das Diagramm mit den Pyrometer und Adafruit Modulen. 
     '''
     
     # Definitionen der Aktionen der Knöpfe:
@@ -164,7 +164,7 @@ def fenster_GUI():                                                        # Enth
         xVonPt = Eingabe_Koordinaten(eingabefeld_xVonPt, change_label_xvPt, 'xBeginn')
         yVonPt = Eingabe_Koordinaten(eingabefeld_yVonPt, change_label_yvPt, 'yBeginn')
         
-    def button_action_5_Hp():                  # Autoscaling beenden Knopf - Heizplatte IKA
+    def button_action_5_Hp():                  # Autoscaling beenden Knopf - Heizer Zusatz
         global AutoStop_Hp, xBestHp, yBestHp, xVonHp, yVonHp
         AutoStop_Hp = True
 
@@ -186,7 +186,7 @@ def fenster_GUI():                                                        # Enth
         global AutoStop_Pt
         AutoStop_Pt = False  
 
-    def button_action_6_Hp():                   # Autoscaling einschalten Knopf - Heizplatte IKA
+    def button_action_6_Hp():                   # Autoscaling einschalten Knopf - Heizer Zusatz
         global AutoStop_Hp
         AutoStop_Hp = False  
 
@@ -270,10 +270,10 @@ def fenster_GUI():                                                        # Enth
     exit_button = ttk.Button(fenster, text="Beenden", command=button_action_3)                             # Fenster Schließen und Heizung Stoppen
     ## AutoScale Ein/Aus Knöpfe:
     AutoStop_button_1_Pt = Button(fenster, text="AutoScale Aus + Ändern", command=button_action_5_Pt)      # Beenden Auto Skalieren - Regelsensor
-    AutoStop_button_1_Hp = Button(fenster, text="AutoScale Aus + Ändern", command=button_action_5_Hp)      # Beenden Auto Skalieren - Heizplatte IKA
+    AutoStop_button_1_Hp = Button(fenster, text="AutoScale Aus + Ändern", command=button_action_5_Hp)      # Beenden Auto Skalieren - Heizer Zusatz
     AutoStop_button_1_Py = Button(fenster, text="AutoScale Aus + Ändern", command=button_action_5_Py)      # Beenden Auto Skalieren - Pyrometer + Adafruit
     AutoStop_button_2_Pt = Button(fenster, text="AutoScale Ein", command=button_action_6_Pt)               # Einschalten Auto Skalieren - Regelsensor
-    AutoStop_button_2_Hp = Button(fenster, text="AutoScale Ein", command=button_action_6_Hp)               # Einschalten Auto Skalieren - Heizplatte IKA
+    AutoStop_button_2_Hp = Button(fenster, text="AutoScale Ein", command=button_action_6_Hp)               # Einschalten Auto Skalieren - Heizer Zusatz
     AutoStop_button_2_Py = Button(fenster, text="AutoScale Ein", command=button_action_6_Py)               # Einschalten Auto Skalieren - Pyrometer + Adafruit
     ## Save Bild:
     save_button = Button(fenster, text="Bild speichern!", command=button_action_7)                         # Bild soll gespeichert werden
@@ -292,7 +292,7 @@ def fenster_GUI():                                                        # Enth
     change_label_yPt = Label(fenster)
     change_label_xvPt = Label(fenster)                              # Beginn der Skala
     change_label_yvPt = Label(fenster)
-    #### Heizplatte IKA
+    #### Heizer Zusatz (Hp noch aus dem allten Progrmm geblieben)
     change_label_xHp = Label(fenster)                               # Ende der Skala
     change_label_yHp = Label(fenster)
     change_label_xvHp = Label(fenster)                              # Beginn der Skala
@@ -309,7 +309,7 @@ def fenster_GUI():                                                        # Enth
     label_yv = Label(fenster, text="y-Achse Beginn: ")
     # Spalten Label
     label_pt = Label(fenster, text="Regelsensor Koordinaten")            # Welche Eingabefelder welchem Graph gehören
-    label_heiz = Label(fenster, text="Heizplatten Koordinaten")
+    label_heiz = Label(fenster, text="Heizer Zusatz Koordinaten")
     label_py = Label(fenster, text="Pyro. & Pt100 Koordinaten")
 
     ### Save:
@@ -326,7 +326,7 @@ def fenster_GUI():                                                        # Enth
     eingabefeld_yAchsePt = Entry(fenster, bd=2, width=10)
     eingabefeld_xVonPt = Entry(fenster, bd=2, width=10)         # Beginn Skala
     eingabefeld_yVonPt = Entry(fenster, bd=2, width=10)
-    # Achsen-Koordinaten Graph Heizplatte IKA
+    # Achsen-Koordinaten Graph Heizer Zusatz
     eingabefeld_xAchseHp = Entry(fenster, bd=2, width=10)       # Ende Skala     
     eingabefeld_yAchseHp = Entry(fenster, bd=2, width=10)
     eingabefeld_xVonHp = Entry(fenster, bd=2, width=10)         # Beginn Skala
@@ -352,10 +352,10 @@ def fenster_GUI():                                                        # Enth
         
     #### Auto Scaling - Knöpfe
     AutoStop_button_1_Pt.place(x=150, y=80, width=180, height=20)       # Aus - Regelsensor (kurz Pt)
-    AutoStop_button_1_Hp.place(x=450, y=80, width=180, height=20)       # Aus - Heizplatte (kurz Hp)
+    AutoStop_button_1_Hp.place(x=450, y=80, width=180, height=20)       # Aus - Heizer Zusatz (kurz Hp)
     AutoStop_button_1_Py.place(x=750, y=80, width=180, height=20)       # Aus - Pyrometer & Adafruit (kurz Py)
     AutoStop_button_2_Pt.place(x=150, y=50, width=150, height=20)       # Ein - Pt1000
-    AutoStop_button_2_Hp.place(x=450, y=50, width=150, height=20)       # Ein - Heizplatte
+    AutoStop_button_2_Hp.place(x=450, y=50, width=150, height=20)       # Ein - Heizer Zusatz
     AutoStop_button_2_Py.place(x=750, y=50, width=150, height=20)       # Ein - Pyrometer & Adafruit
     #
     #### Auto Scaling - Ende
@@ -396,7 +396,7 @@ def fenster_GUI():                                                        # Enth
     #
     #### Auto Scaling - Welche Eingabefelder zu welchen Gerät gehören
     label_pt.place(x=150, y=310, width=170, height=30)
-    label_heiz.place(x=450, y=310, width=160, height=30)
+    label_heiz.place(x=450, y=310, width=180, height=30)
     label_py.place(x=750, y=310, width=200, height=30)
 
     #### Save
@@ -560,13 +560,16 @@ def get_Measurment():                                                     # Aufn
                     plt.legend(loc='best') 
                     plt.grid()
                     # Zusatz Linie - Abhängig von Heizer Wahl
-                    ax2End = plt.subplot(223)                                                          # erzeugt zweiten Teilgraph
-                    line2End, = ax2End.plot(listTiRe, listZusatz)          
+                    ax2End = plt.subplot(223)                                                          # erzeugt zweiten Teilgraph         
                     plt.xlabel("Zeit in s",fontsize=12)                                                # Haben gemeinsame x-Achse
                     if heizer_wahl == 'IKA':
+                        label_zusatz = 'Heizplatten Temperatur'
                         plt.ylabel("Temperatur Heizplatte in °C",fontsize=12)
                     if heizer_wahl == 'Eurotherm':
-                        plt.ylabel("Ausgangsleistung Eurotherm in W",fontsize=12)
+                        label_zusatz = 'Ausgangsleistung'
+                        plt.ylabel("Ausgangsleistung Eurotherm in %",fontsize=12)
+                    line2End, = ax2End.plot(listTiRe, listZusatz, 'b', label=label_zusatz) 
+                    plt.legend(loc='best')
                     plt.grid()
                     # Linie Pyrometer
                     ax3End = plt.subplot(222)                                                   
@@ -607,8 +610,7 @@ def get_Measurment():                                                     # Aufn
             AutoScroll(ax3, AutoStop_Py, xVonPy, xBestPy, yVonPy, yBestPy, 1, 5)            # Pyrometer + Adafruit        
             AutoScroll(ax4, False, 0, 101, 0, 1000, 1, 1)                                   # Emissionsgrad (AutoScroll aus nicht vorhanden - die 6 Werte nach False sind dadurch egal)
                 
-            # Grafik - Temperaturmesser in Heizplatte
-            
+            # Grafiken - Heizer
             Update_Graph(line1, listTempPt)                 # Regelsensor
             Update_Graph(line2, listZusatz)                 # Extra (Temperatur oder Leistung)
        
@@ -722,14 +724,18 @@ def Start():                                                              # Befe
         
         # Listen:
         listTiRe = []       # x-Wert der Grafik (Zeit)
-        listTempPt = []     # PT1000 der Heizplatte
-        listZusatz = []     # Heizplattensensor
+        listTempPt = []     # PT1000 oder Pt100 der am Heizer/Heizerregler angeschlossen ist
+        listZusatz = []     # Heizer Zusatz Daten (Ausgangsleistung oder Heizplattentemperatur)
 
         # Hardware starten:
         heizer_wahl = config['Heizer']['Auswahl']['String']
         if heizer_wahl == 'IKA':
-            obj_heizer.Start_Heizung()                                                             # Start für die Heizplatte
+            obj_heizer.start_heizung()                                                             # Start für die Heizplatte
             if args.log == True:   logging.info('Heizung Ein') 
+        
+        # Ersten Sollwert setzen:
+        obj_heizer.change_SollTemp(TempTrep[0])
+        if args.log == True:   logging.info('Sollwert Zyklus 1 übergeben!') 
         
         # Grafik Erzeugung:
         plt.ion()
@@ -794,7 +800,7 @@ def Stop():                                                               # Befe
     # Hardware stoppen:
     heizer_wahl = config['Heizer']['Auswahl']['String']
     if heizer_wahl == 'IKA':
-        obj_heizer.Stop_Heizung()            # Stopp für die Heizplatte
+        obj_heizer.stop_heizung()            # Stopp für die Heizplatte
         if args.log == True:   logging.info('Heizung Aus') 
     
     # Grafik Speichern und schließen:
@@ -837,6 +843,10 @@ adafruit.truth_pt100(args.test, args.debug)
 # Delay zwischen Senden und Abfragen:
 delay_heiz = config['Delay']['Heizer']
 heizer.serial_delay(delay_heiz)
+
+# Kontrolle ob es eine Emulation gibt:
+emulation = config['Emulation']
+heizer.emulation_on(**emulation)
 
 # Log-datei erstellen:
 if args.log:
@@ -912,8 +922,6 @@ print(f'Sollwertbereich   = {TempArea}')
 print(f'Zeiten im Bereich = {TempTime}')
 print()
 if args.log == True:   logging.info('Rezept Eingelesen') 
-obj_heizer.change_SollTemp(TempTrep[0])
-if args.log == True:   logging.info('Sollwert Zyklus 1 übergeben!') 
 
 # GUI öffnen: 
 fenster_GUI()

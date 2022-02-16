@@ -59,7 +59,7 @@ Das Programm basiert auf dem erarbeiteten Programm aus meinem Praktikum. So wurd
 ### 2.1. Programme
 
 1. **hauptprogramm.py:**   
-    Im hauptprogramm.py werden die Geräte initialisiert, Grafiken gestartet, Files erzeugt und mit den Messdaten belegt, sowie die Emissionsgradanpassung erzeugt. 
+    Im hauptprogramm.py werden die Geräte initialisiert, Grafiken gestartet, Files erzeugt und mit den Messdaten belegt, sowie die Emissionsgradanpassung erzeugt. Zudem werden die Test und Debug Werte an die Gerätebibliotheken gesendet, Eurotherm Heizer bekommt ein Delay und wenn gewollt eine weitere Schnittstelle. Mit dieser Schnittstelle wird ein Arduino als Leistungssteuerung für das Eurotherm initialisiert. Mit dem Arduino Programm in P2 kann man auch den Eurotherm mit dem Arduino ersetzen. 
 
     *Funktionen:*     
     - **Init_File()**   
@@ -146,6 +146,8 @@ Diese Datei wird von Hauptprogramm mithilfe der python Bibliothek yaml ausgelese
 3. **heizer.py**     
 In der Datei befinden sich alle Befehle für die beiden derzeitigen Heizer. Die Funktionen für die Heizplatte von IKA stammen aus dem Praktikum. Die Funktionen für den Eurotherm sind neu und werden später noch erläutert. 
 
+    Im laufe der Bearbeitung, auf Grund von Fehlern, wurde eine Emulation für Eurotherm entwickelt. Dieses Arduino Programm kann einerseits das Eurotherm Gerät ersetzen oder andererseits nur die Leistungssteuerung der Heizplatte übernehmen. 
+
 4. **pyrometer.py**    
 Im Praktikums Programm waren die kurz- und langwelligen Pyrometer getrennt von einander. In diesem sind die Funktionen nun in einer Datei. Die Funktionen wurden mir vom IKZ gegeben.
 
@@ -212,6 +214,36 @@ Die GUI wird durch die python Bibliothek **tkinter** erzeugt. Für diese GUI wer
     Mit diesem Knopf kann man verursachen das der Live-Plot in get_Measurment() aktualisiert wird. Die Betätigung toggelt eine Variable zwischen False und True. Sobald die Variable auf True steht steht der Live-Plot still, egal was man macht, auch das AutoScale verursacht nichts bis der Knopf erneut gedrückt wird!    
     Eine Notiz unter dem Knopf nennt den aktuellen Status der Variable! 
 
+### 2.5. Grafik:
+Auch die Grafik wurde weitesgehend aus dem exp-T-control Projekt übernommen. geändert hat sich aber trotzdem etwas:    
+1. Übergabe von Labels/Legenden Namen:   
+In dem neuen Programm werden einige Legendenlabels aus der Parameterliste entnommen. Z.B. die Namen für Pyrometer und Pt100. Auch der Regelsensor Name kann in der datei geändert werden. 
+2. Zusatzdiagram:    
+Je nach dem welcher Heizer angegeben ist, wird eine andere Größe geplottet. Beim Eurotherm/Emulation wird die Ausgangsleistung des Reglers in % geplottet und bei der IKA Heizplatte wird die Heizplattentemperatur ausgelesen. 
+
+**Notiz:**    
+Sollten weitere Heizer hinzugefügt werden, so müsste man entweder dieses Diagramm verriegeln oder auch bei dem Heizer eine Größe dort printen lassen. Mit der v3.0 ist dieses Diagramm immer vorhanden. 
+ 
+**Diagramm Eurotherm/Emulation:**    
+<img src="Bilder/Diagram_Euro.png" alt="Diagramme der Messung" title='Eurotherm ausgewählt' width=700/> 
+
+**Diagramm Heizplatte IKA:**  
+<img src="Bilder/Diagramm_IKA.png" alt="Diagramme der Messung" title='IKA ausgewählt' width=700/> 
+Oben Links:   
+Das Diagramm zeigt die Isttemperatur des Regelsensors. Über die Parameterliste kann man das Legenden-Label der Kurve ändern. 
+
+Oben rechts:    
+Das Diagramm zeigt die Temperaturmessdaten der Adafruit Module (Pt100 Widerstandsthermometer) und der Pyrometer. Auch hier sind die Label-Namen über die Parameterliste anpassbar.
+
+Unten Links:     
+Dieses Diagramm ist das besagte Zusatzdiagramm und zeigt derzeitig entweder die Ausgangsleistung in % oder die Heizplattentemperatur in °C. Die Label-Namen werden je nach Heizerwahl (Parameterliste) fix im Code festgelegt.
+
+Unten Rechts:   
+Das Diagramm zeigt die Emissionsgradmessung der Pyrometer. Bis zur Anpassung ist der Emissionsgrad 100 % groß. Die Labels werden durch die Parameterliste angegeben (Name des Gerätes).
+
+Bei dem Diagramm von IKA ist gelichzeitig auch die Test-Funktion dargestellt. Das Programm gibt zufällige Werte zurück.
+
+### 2.6. Weiters 
 **Beispiel Programme/Datein:**    
 In dem Ordner "Beispiel Datein" liegt ein Beispiel für ein Messrezept und für die YAML Datei. Diese können für das Programm benutzt werden. Für die Nutzung müssen die Datein in den Hauptordner gezogen werden und eventuell wegen der Schnittstelle und eines anderen Rezeptes angepasst werden. 
 
@@ -249,7 +281,9 @@ Programm sind auch über eine Konsole (z.B. PowerShell) start bar. Mit der pytho
 Für den Eurotherm Regler wurden verschiedene Manuals genutzt. In diesen Kapitel sollen diese einmal erwähnt werden.    
 
 - Eurotherm 900EPC-BA-HA150789GER.pdf    
-    - zu finden im Internet: https://www.eurotherm.com/download/900-epc-benutzer-handbuch-ha150789ger/
+    - zu finden im Internet:    
+        - https://www.eurotherm.com/download/900-epc-benutzer-handbuch-ha150789ger/
+        - https://www.eurotherm.com/download/900-epc-benutzer-handbuch-ha150789ger/?ind=0&filename=900EPC-BA-HA150789GER.pdf&wpdmdl=27254&refresh=61e97823233e71642690595  
     - Sprache: Deutsch    
     - **wichtiger Inhalt**:
         - das Manual bezieht sich auf den hier genannten 905S Eurotherm   
@@ -266,6 +300,7 @@ Für den Eurotherm Regler wurden verschiedene Manuals genutzt. In diesen Kapitel
 
             <img src="Bilder/Schalter_902.jpg" alt="Platine mit Schalter für 902P" title="Schalter" width=500/>
 
+    - S. 53 - 54 - AutoTune/Selbstoptiemierung
     - S. 96 - Einstellung der Kommunikationsparameter (Baudrate und Adresse)
     - S. 98 - Einstellung der Sollwertgrenzen
     - S. 116 - Konfiguration und wie man dort hineinkommt
@@ -288,7 +323,8 @@ Für den Eurotherm Regler wurden verschiedene Manuals genutzt. In diesen Kapitel
 - 900comms_023776_2_1.pdf   
     - zu finden im Internet: http://www.jjmiller.info/files/BVT3000/900comms_023776_2_1.pdf 
     - S. 26 - EE Bedeutung (Fehlererklärung)
-    - S. 29 - 32 - Mnemonik Befehle (die mehr verwendet)
+    - S. 29 - 32 - Mnemonik Befehle (die mehr verwendet) (für 902,903 und 904)
+    - S. 39 - 44 - Mnemonik Befehle für 900 EPC (905S gehört dazu)
 
 #### 3.1.2. IKA Heizplatte
 Die Befehle und Informationen für die Heizplatte kann man auf der nachfolgenden Internetseite finden. Das Dokument zeigt die Betriebsanleitung des Gerätes.   
@@ -473,7 +509,7 @@ Die Funktion **bcc(self, string)** ist in der Klasse Eurotherm im Programm **hei
     * Sollwertgrenze Min    -->     LS  
     * Istwertgrenze Max     -->     1H
     * Istwertgrenze Min     -->     1L    
-    * Ausgangsleistung      -->     O1 
+    * Ausgangsleistung      -->     OP 
     PID-Parameter:     
     * Proportional Band     -->     XP     
     * Integral Zeit         -->     TI      

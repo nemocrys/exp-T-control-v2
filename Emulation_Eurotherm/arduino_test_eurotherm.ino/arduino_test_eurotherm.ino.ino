@@ -135,14 +135,14 @@ void DriveOutput()
 void TimerInterruptRelay()
 {
 
-  if ( PIDInput < DDPIDInputMIN || PIDInput > DDPIDInputMAX )
-  {
-    digitalWrite(RelayPin, DDHeatingOFF);  // make sure relay is off
-  }
-  else
-  {
-    DriveOutput();
-  }
+  //if ( PIDInput < DDPIDInputMIN || PIDInput > DDPIDInputMAX )
+  //{
+  //  digitalWrite(RelayPin, DDHeatingOFF);  // make sure relay is off
+  //}
+  //else
+  //{
+  DriveOutput();
+  //}
 
 }
 
@@ -240,7 +240,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
 
     if (befehl == "11H")
     {
-      String ans = "750";
+      String ans = String(DDPIDInputMAX);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
       antwort = "11H" + ans + ETX + bcc;
@@ -249,7 +249,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
 
     if (befehl == "11L")
     {
-      String ans = "0";
+      String ans = String(DDPIDInputMIN);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
       antwort = "11L" + ans + ETX + bcc;
@@ -296,19 +296,16 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       Serial.print(antwort);
     } // if SL
 
-    if (befehl == "O1")
+    if (befehl == "OP")
     {
       float Leistung = 0;
-      if (PIDOutput > DDPIDLimitMin)
-      {
-        Leistung = PIDOutput/DDPIDWindowSize * 100;
-      }
+      if (PIDOutput > DDPIDLimitMin){Leistung = PIDOutput/DDPIDWindowSize * 100;}
       String ans = String(Leistung, 1);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
       antwort = "O1" + ans + ETX + bcc;
       Serial.print(antwort);
-    } // if O1
+    } // if OP
   } // if
 
   if (sollschreiben)     // Schreiben:
@@ -361,7 +358,15 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       myPID.SetTunings(kp, ki, kd);
       Serial.write(ACK);
     } // if TD
-  } // else
+
+    if (befehl == "OP") // OP ist nur unter bestimmten Bedingung in Eurotherm schreibbar - der Befehl dient hier zur zusammenarbeit zwische Arduino und Eurotherm
+    {
+      float val = value.toFloat();
+      PIDOutput = val/100 * DDPIDWindowSize;
+      if (PIDOutput > DDPIDLimitMax) {PIDOutput = DDPIDLimitMax;}
+      Serial2.println("Ausgangsleistung = " + String(PIDOutput));
+    }// if OP
+  } // if (sollschreiben)
 } // void Eurotherm
 // - Vincent Funke - 1.2.22 - Ende
 
@@ -388,7 +393,7 @@ void setup() {
 
   myPID.SetOutputLimits(DDPIDLimitMin, DDPIDLimitMax);
   myPID.SetSampleTime(DDPIDSampleRate);
-  myPID.SetMode(AUTOMATIC); //AUTOMATIC or MANUAL
+  myPID.SetMode(MANUAL); //AUTOMATIC or MANUAL
 
   PIDInput = MAX31865_get();
 
@@ -542,7 +547,7 @@ void loop() {
       if (eingabe == "TI") {code = "TI"; eingabe = ""; }
       if (eingabe == "TD") {code = "TD"; eingabe = ""; }
       if (eingabe == "SL") {code = "SL"; eingabe = ""; }
-      if (eingabe == "O1") {code = "O1"; eingabe = ""; }
+      if (eingabe == "OP") {code = "OP"; eingabe = ""; }
     }// else
   } // if Serial.available
   // - Vincent Funke - 1.2.22 - Ende

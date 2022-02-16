@@ -4,11 +4,12 @@ import random
 import time
 
 # Globale Variablen:
-global test_on, dbg_on, delay
+global test_on, dbg_on, delay, emu_on
 
 # Test und Debug Funktion (bzw. Werte) vorbereiten:
 test_on = False
 dbg_on = False
+emu_on = False
 
 def truth_heiz(test, dbg):
     global test_on, dbg_on
@@ -22,6 +23,27 @@ def serial_delay(time_delay):
     
     delay = time_delay
 
+# Emulation einschalten - Eurotherm und Arduino
+def emulation_on(Wahrheit, com, bd, parity, stopbits, bytesize):
+    global emu_on, schnitt_emu
+    
+    if Wahrheit == True:
+        emu_on = True
+        portName = com
+        try:
+            serial.Serial(port=portName)
+        except serial.SerialException:
+            print ('Port ' + portName + ' not present')
+            if not test_on:
+                quit()  
+        schnitt_emu = serial.Serial(
+            port = portName,
+            baudrate = int(bd),
+            parity = parity,
+            stopbits = int(stopbits),
+            bytesize = int(bytesize),
+            timeout = 2.0)
+        print("Emulation/Arduino initialisiert!\n")
 
 class Heizer:  
     def print_type(self):   # Gibt an welcher Heizer genutzt wird
@@ -133,24 +155,24 @@ class HeizerPlatte(Heizer):                                     # IKA Heizplatte
             if dbg_on:
                 print ('Sending to ' + self.com + ' den Befehl IN_SP_1\\r\\n')
             self.ser_py.write(('IN_SP_1' + '\r\n').encode())
-        tempSoll = self.read().split(' ')[0] 
-        print (f'Die Solltemperatur ist gerade {tempSoll} °C groß.')
-        return tempSoll
+            tempSoll = self.read().split(' ')[0] 
+            print (f'Die Solltemperatur ist gerade {tempSoll} °C groß.')
+            return tempSoll
 
     def get_SaveTemp(self):                # Befehl - Erfragen der Sicherheitstemperatur
         if test_on == False:
-                if dbg_on:
-                    print ('Sending to ' + self.com + ' den Befehl IN_SP_3\\r\\n')
-                self.ser_py.write(('IN_SP_3 ' + '\r\n').encode())
-        SaveTemp = self.read().split(' ')[0] 
-        print(f'Die Sicherheitstemperatur ist gerade {SaveTemp} °C groß.')
+            if dbg_on:
+                print ('Sending to ' + self.com + ' den Befehl IN_SP_3\\r\\n')
+            self.ser_py.write(('IN_SP_3 ' + '\r\n').encode())
+            SaveTemp = self.read().split(' ')[0] 
+            print(f'Die Sicherheitstemperatur ist gerade {SaveTemp} °C groß.')
 
     def start_heizung(self):              # Befehl zum Starten der Heizplatte wird übergeben 
         if test_on == False:
-                if dbg_on:
-                    print ('Sending to ' + self.com + ' den Befehl START_1\\r\\n')
-                self.ser_py.write(('START_1' + '\r\n').encode())
-                print('Heizvorgang Startet, Heizung An!')
+            if dbg_on:
+                print ('Sending to ' + self.com + ' den Befehl START_1\\r\\n')
+            self.ser_py.write(('START_1' + '\r\n').encode())
+            print('Heizvorgang Startet, Heizung An!')
 
     def stop_heizung(self):              # Befehl zum Stoppen der Heizplatte wird übergeben
         if test_on == False:
@@ -207,6 +229,7 @@ class HeizerEurotherm(Heizer):
         befehl = 'TD'
         nameDG = self.read(befehl)
         print(f'PID-Parameter = xp = {namePG} (P-Glied), Ti = {nameIG} (I-Glied) und Td = {nameDG} (D-Glied)')
+        # eventuell noch br, HB, LB, HO einarbeiten - Fragen (dann auch in Arduino Programm)
         print()
 
     def get_istwert(self):                  # Holt den Istwert 
@@ -238,8 +261,15 @@ class HeizerEurotherm(Heizer):
     
     def get_power_OUT(self):                # Leistung abfragen
         if test_on == False:
-            befehl = 'O1'
+            befehl = 'OP'
             euroPow = self.read(befehl)
+            if emu_on == True:              # Regelung PID, Leistungsregelung Arduino
+                sEOT = '\x04'
+                sETX = '\x03'
+                sSTX = '\x02'
+                bcc_write = self.bcc(befehl + euroPow)
+                send = sEOT + str(self.gid) + str(self.gid) + str(self.uid) + str(self.uid) + sSTX + befehl + euroPow + sETX + bcc_write
+                schnitt_emu.write(send.encode())
         else:
             euroPow = random.uniform(0,100)                            
         return float(euroPow)
@@ -277,7 +307,11 @@ class HeizerEurotherm(Heizer):
             if dbg_on == True:
                 print ('Sending to ' + self.com + f' den Befehl [EOT]{self.gid}{self.gid}{self.uid}{self.uid}{read_befehl}[ETX]')
             time.sleep(delay)
-            answer = self.ser_py.readline().decode()
+            try:                                               # Sollte ein Decodier Fehler auftreten verhindere ihn
+                answer = self.ser_py.readline().decode()
+            except:
+                answer = ""
+                print("Decode Fehler beim lesen! - read")
             
             if answer != "":                # Leere Strings ignorieren und Null zurückgeben
                 bcc_read = answer[-1]       # das letzte Zeichen in der Antwort ist das BCC
@@ -296,7 +330,11 @@ class HeizerEurotherm(Heizer):
                     print('BCC der Antwort ist falsch. Wiederhole Abfrage!')
                     self.ser_py.write(send.encode())
                     time.sleep(delay)
-                    answer = self.ser_py.readline().decode()
+                    try:
+                        answer = self.ser_py.readline().decode()
+                    except:
+                        answer = ""
+                        print("Erneuter Decode Fehler beim lesen! -read")
                     if answer != "":
                         bcc_read = answer[-1]       
                         value = answer[3:-2]
@@ -335,7 +373,11 @@ class HeizerEurotherm(Heizer):
             time.sleep(delay)
             
             # Als Antwort beim schreiben soll das ACK = \x06 zurückkommen
-            answer = self.ser_py.readline().decode() 
+            try:
+                answer = self.ser_py.readline().decode()
+            except:
+                answer = ""
+                print("Decode Fehler beim lesen! - send")
             if answer == sACK:
                 print('Befehl erfolgreich gesendet!')
             
@@ -352,7 +394,11 @@ class HeizerEurotherm(Heizer):
                 # Erneute Sendung:
                 self.ser_py.write(send.encode())
                 time.sleep(delay)
-                answer = self.ser_py.readline().decode()
+                try:
+                    answer = self.ser_py.readline().decode()
+                except:
+                    answer = ""
+                    print("Erneuter Decode Fehler beim lesen! - send")
                 n += 1
 
             # im folgenden wird geschaut was das EE zurückgibt, eine Null bedeutet das kein Fehler vorliegt

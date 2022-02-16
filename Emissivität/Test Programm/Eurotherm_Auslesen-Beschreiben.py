@@ -3,9 +3,9 @@ import time
 
 test_on = False
 dbg_on = False
-delay = 0.5         # in s
+delay = 0.1         # in s
 
-portName = '/dev/ttyACM1' 
+portName = '/dev/ttyUSB1' 
 try:
     serial.Serial(port=portName)
 except serial.SerialException:
@@ -16,10 +16,10 @@ except serial.SerialException:
 if test_on == False:                          
     ser_py = serial.Serial(
         port = portName,
-        baudrate = int(19200),
-        parity = 'N',
+        baudrate = int(9600), # Emulation 19200 (8N1)
+        parity = 'E',
         stopbits = int(1),
-        bytesize = int(8),
+        bytesize = int(7),
         timeout = 2.0)          
 else:
     print('Ein Test läuft gerade!')
@@ -177,18 +177,25 @@ for n in range(0,10,1):
 #answer = ser_py.readline()#.decode()
 #print(answer)
 
-one = read('SL')
-send('SL100')
-tree = read('SL')
+#one = read('SL')
+#send('SL20')
+#tree = read('SL')
 
-print(f'Solltemperatur war vorher {one} °C und wurde auf {tree} °C gesetzt!')
+#print(f'Solltemperatur war vorher {one} °C und wurde auf {tree} °C gesetzt!')
 
-iden = read('II')
-print(f'Identität: {iden}')
-iden = read('V0')
-print(f'Version: {iden}')
-iden = read('O1')
-print(f'Identität: {iden}')
+#iden = read('II')
+#print(f'Identität: {iden}')
+#iden = read('V0')
+#print(f'Version: {iden}')
+#iden = read('OP')
+#print(f'Ausgangslitung: {iden}')
+
 #for n in range(0,10,1):
 #   one = read('PV')
 #   print(one)
+
+lese = read('HO')
+print(lese)
+send('HO50')
+lese = read('HO')
+print(lese)

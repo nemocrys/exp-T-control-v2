@@ -77,7 +77,7 @@ NAK oder ACK                                 - Antwort vom Gerät
 In dem Programm wurde von mir im Loop die Bearbeitung des Befehls eingefügt und zwei Funktionen für die Antwort des Gerätes. 
 
 ### 3.1. Funktion des Codes
-1. Befehl auslesen und bearbeiten:    
+1. **Befehl auslesen und bearbeiten:**    
 Wie man in den Befehlen sehen kann, sind die Endungen und Längen der Befehle für Schreiben und Lesen unterschiedlich. Zudem sind Steuerzeichen in den Befehlen beinhaltet.      
 Für die Bearbeitung des Befehls sind verschiedene Boolesche variablen zuständig:
     1. einlesen:     
@@ -97,33 +97,37 @@ Für die Bearbeitung des Befehls sind verschiedene Boolesche variablen zuständi
 
     Zusätzlich wurden bei ETX und ENQ sowie nach der Eurotherm Funktion, LEDs eingearbeitet. Somit wird die LED je Befehl zwei mal blinken.            
      
-2. Antwort erstellen:    
+2. **Antwort erstellen:**    
 Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm Funktion erhält aus dem Loop den Code (Mnemonic-Befehl), den Wert (nur schreiben) und ob Lesen oder Schreiben aktiv ist. 
 
     In der Funktion wird als erstes festgestellt ob es nun eine Antwort für das Lesen oder Schreiben erstellen soll. Danach überprüft das Programm welchen Wert auslesen und zurückgeben muss oder welchen Wert er ändern soll.     
     Beim Lesen werden bestimmte Variablen wie Sollwert, PID-Parameter und Isttemperatur von dem Regelsensor ausgelesen.     
     Beim Schreiben wird der Wert von einem String in einen Float oder Integer umgewandelt und der Variable übergeben. 
 
-    Bei dem Lesebefehlen muss man nun den BCC Wert beachten, da diese von dem Hauptprogramm bzw. heizer.py kontrolliert wird. Dazu wird bei jedem Lesebefehl die Funktion BCC ausgelöst. Diese Funktion berechnet einen Charakter aus ASCII Zeichen. Diese    Berechnung erfolgt mit dem XOR was in der Programmierung durch das "^" gekennzeichnet wird. In der Funktion wird zunächst die Länge von Code und Wert bestimmt, weil diese unterschiedlich lang sind. daraufhin wird in einer For-Schleife jedes Zeichen als Zeichen (Charakter) ausgelesen und in den BCC berechnet. Zum Schluss wird eine 3 hinzugerechnet, welche das ETX kennzeichnet. Weiteres kann man im Readme des anderen Ordners nachlesen. 
+    Bei dem Lesebefehlen muss man nun den BCC Wert beachten, da diese von dem Hauptprogramm bzw. heizer.py (anderes Programm) kontrolliert wird. Dazu wird bei jedem Lesebefehl die Funktion BCC ausgelöst. Diese Funktion berechnet einen Charakter aus ASCII Zeichen. Diese    Berechnung erfolgt mit dem XOR was in der Programmierung durch das "^" gekennzeichnet wird. In der Funktion wird zunächst die Länge von Code und Wert bestimmt, weil diese unterschiedlich lang sind. daraufhin wird in einer For-Schleife jedes Zeichen als Zeichen (Charakter) ausgelesen und in den BCC berechnet. Zum Schluss wird eine 3 hinzugerechnet, welche das ETX kennzeichnet. Weiteres kann man im Readme des anderen Programmes (Emissivität) nachlesen. 
 
-3. Einsparrungen:
+3. **Einsparrungen:**
     - Die Antwort für das schreiben ist immer ACK!
     - Der BCC vom eingehenden Befehl wird ignoriert.
     - II, EE, V0, 11H, 11L, HS, LS - geben Feste Werte zurück
     - EE sagt immer das es keine Fehler gibt
 
-4. Test-Funktionen:
-    - LED:   
-    Wie schon erwähnt gibt es in dem Code LED Funktionen. Die LED wurde an den PIN 7 des Arduinos gesteckt.    
+4. **Test-Funktionen:**
+    - **LED:**   
+    Wie schon erwähnt gibt es in dem Code LED Funktionen. Die LED wurde an den PIN 7 des Arduinos gesteckt. Die LED ist so programmiert, dass sie bei jedem Befehl zwei mal blinkt.         
     
         <img src="Bilder/LED.jpg" alt="Zusatz LED" title="LED in Schaltung" width=300/>                
     
         Als Widerstand wurde ein 330 Ohm Widerstand verwendet. 
 
-    - zweite Schnittstelle:    
+    - **zweite Schnittstelle:**    
     Dr. Kaspars Dadzis hat eine zweite Schnittstelle entworfen die man auf dem folgenden Bild sehen kann: 
 
         <img src="Bilder/zweite_Schnittstelle.jpg" alt="Zusatz Extra Schnittstelle" title="Zweite Schnittstelle verfügbar" width=300/>  
 
         Die Schnittstelle kann man mit Serial1 oder Serial2 (je nach Pin-Belegung von TX und RX) aufgerufen. Durch diese Erweiterung kann man das Programm debugen, indem man die Variablen auf diese Schnittstelle ausgeben lässt. Würde man mit nur Serial arbeiten, würde man sich Dinge in seine Antworten schreiben.
+
+5. **Variante 3:**   
+In Variante 3 wird "myPID.SetMode(AUTOMATIC)" auf MANUAL umgestellt. Der Arduino bekommt nun vom Eurotherm Gerät den Wert vom Mnemonic Befehl "OP" und rechnet ihn um bevor er diesen in die Variable "PIDOutput" setzt.    
+Dieser Befehl wird nur aufgerufen wenn im hauptprogramm.py der gegebene Wert aus der Parameterliste gefunden wird und auch auf True steht, sonst wird der Teil einfach übersprungen. In heizer.py wird alles dann dazu bearbeitet, immer wenn OP aus dem Eurotherm gelesen wird, wird kurz darauf zum Arduino gesendet und bearbeitet. Diese Bearbeitung ist dann auch in Serial2 sichtbar.  
 
