@@ -35,6 +35,7 @@ const int pinMAX31865_CLK = 9;
 const int pinMAX31865_CS_2 = 7;
 
 const int RelayPin = 23;
+const int DACVoltagePin = A1;
 
 // --------------------------------------------------------------------------------
 // ---------------------------------------- Misc libraries
@@ -42,6 +43,7 @@ const int RelayPin = 23;
 
 #include <SPI.h>
 #include "TimerOne.h"
+#include <Wire.h>
 
 // --------------------------------------------------------------------------------
 // ---------------------------------------- Adafruit
@@ -71,6 +73,21 @@ float MAX31865_get()
   }
   else return -99.0;
 }
+
+// --------------------------------------------------------------------------------
+// ---------------------------------------- DAC
+// --------------------------------------------------------------------------------
+
+#define DDPIDLimitMaxDAC   1.0
+
+float PIDOutputDACvolts = 0;
+float PIDOutputDACvoltsCheck = 0;
+int PIDOutputDACbits = 0;
+const int PIDOutputDACbitsMax = trunc(DDPIDLimitMaxDAC*4095.0/5.0);
+
+#include "MCP4725.h"
+
+MCP4725 dac(0x62);
 
 // --------------------------------------------------------------------------------
 // ---------------------------------------- PID
@@ -131,7 +148,7 @@ void DriveOutput()
 
 // --------------------------------------------------------------------------------
 
-// Timer Interrupt Handler
+// Timer Interrupt Handler DDPIDSampleRateOutMicro = 20 ms
 void TimerInterruptRelay()
 {
 
@@ -382,6 +399,10 @@ void setup() {
 
   // ---
 
+  dac.begin();
+
+  // ---
+
   pinMode(RelayPin, OUTPUT);
   digitalWrite(RelayPin, DDHeatingOFF);
 
@@ -571,6 +592,22 @@ void loop() {
 
       PIDInput = PIDInputAVR;
     }
+
+  // Set DAC output
+
+  //DDPIDLimitMin=1000...DDPIDLimitMax=10000 -> 0...5V (max. power = 10V)
+  PIDOutputDACvolts = 5.0*(PIDOutput-DDPIDLimitMin)/(DDPIDLimitMax-DDPIDLimitMin);
+  if (PIDOutputDACvolts<0) PIDOutputDACvolts = 0;
+  if (PIDOutputDACvolts>5) PIDOutputDACvolts = 5;
+
+  // 0...5V -> 0...4095 bits
+  PIDOutputDACbits = trunc(PIDOutputDACvolts*4095.0/5.0);
+  dac.setValue(PIDOutputDACbits); 
+
+  // Check for voltage limit
+  PIDOutputDACvoltsCheck = analogRead(DACVoltagePin)*(5.0/1023.0);
+  if ( PIDOutputDACvoltsCheck > DDPIDLimitMaxDAC )  dac.setValue(PIDOutputDACbitsMax);
+
   }
 
 } // loop
