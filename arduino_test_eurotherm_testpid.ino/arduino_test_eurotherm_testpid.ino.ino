@@ -75,11 +75,14 @@ float MAX31865_get()
 }
 
 // --------------------------------------------------------------------------------
-// ---------------------------------------- DAC
+// ---------------------------------------- DAC Output
 // --------------------------------------------------------------------------------
 
-#define DDPIDLimitMinDAC     0
-#define DDPIDLimitMaxDAC     0.8
+// Limit for additional safety. Use DDPIDLimitMin/Max for regular power control.
+const float DDPIDLimitMaxDAC = 2.0; // 0.0...10.0V (max. 5V output currently supported)
+
+// !!!Do not change!!!
+const float DDPIDOutputRangeDAC = 10.0; //DAC output range
 
 float PIDOutputDACvolts = 0;
 float PIDOutputDACvoltsCheck = 0;
@@ -91,25 +94,33 @@ const int PIDOutputDACbitsMax = trunc(DDPIDLimitMaxDAC*4095.0/5.0);
 MCP4725 dac(0x62);
 
 // --------------------------------------------------------------------------------
-// ---------------------------------------- PID
+// ---------------------------------------- Internal PID and Relay Output
 // --------------------------------------------------------------------------------
 
 // Define Heating on/off vs. Pin level
 #define DDHeatingOFF LOW
 #define DDHeatingON  HIGH
 
-#define DDPIDSetpointMIN 0
-#define DDPIDSetpointMAX 400
-#define DDPIDInputMIN 0
-#define DDPIDInputMAX 400
+float DDPIDSetpointMIN = 0;
+float DDPIDSetpointMAX = 400;
+float DDPIDInputMIN = 0;
+float DDPIDInputMAX = 400;
 
-#define DDPIDWindowSize 20000
-// Zurzeit noch nicht veränderbar über Befehle
-#define DDPIDLimitMin   0   //1000
-#define DDPIDLimitMax   100 //10000
-#define DDPIDLimitMinRelay   1000
-#define DDPIDLimitMaxRelay   10000
+// Limits for PIDOutput. Applied also as safety with external PID
+float DDPIDLimitMin = 0;   //5% for relay control, 0% for DAC control
+float DDPIDLimitMax = 100; //50% for relay control, 10% for DAC control
 
+// Limits for additional safety. Use DDPIDLimitMin/Max for regular power control.
+const long DDPIDLimitMinRelay = 500; //0.5s
+const long DDPIDLimitMaxRelay = 10000; //10s
+
+// --------------------------------------------------------------------------------
+
+// !!!Do not change!!!
+const float DDPIDOutputRange = 100.0;
+
+float PIDOutputRelay = 0;
+long DDPIDWindowSize = 20000; //20s
 #define DDPIDSampleRate 200
 #define DDPIDSampleRateMicro 200000
 #define DDPIDSampleRateOutMicro 20000
@@ -132,41 +143,24 @@ PID myPID(&PIDInput, &PIDOutput, &PIDSetpoint, 200, 0.3, 0, DIRECT);
 
 // --------------------------------------------------------------------------------
 
-void DriveOutput()
+// Timer Interrupt Handler DDPIDSampleRateOutMicro = 20 ms
+void TimerInterruptRelay()
 {
 
   // Works as slow PWM: output between 0 and Window size
-
+  
   unsigned long now = millis();
   if (now - PIDwindowStartTime > PIDWindowSize)
   { //time to shift the Relay Window
     PIDwindowStartTime += PIDWindowSize;
   }
 
-  // Pulses under 1000 ms are ignored!
-  // This should coincide with the lower limit of the PID!
+  PIDOutputRelay = PIDWindowSize*PIDOutput/DDPIDOutputRange;
+  if (PIDOutputRelay < DDPIDLimitMinRelay) PIDOutputRelay = DDPIDLimitMinRelay;
+  if (PIDOutputRelay > DDPIDLimitMaxRelay) PIDOutputRelay = DDPIDLimitMaxRelay;
 
-  float PIDOutputRelay = PIDOutput/100.0*PIDWindowSize;
-
-  if (PIDOutputRelay > DDPIDLimitMinRelay && (PIDOutputRelay > now - PIDwindowStartTime) ) digitalWrite(RelayPin, DDHeatingON);
+  if ( PIDOutputRelay > DDPIDLimitMinRelay && (PIDOutputRelay > now - PIDwindowStartTime) ) digitalWrite(RelayPin, DDHeatingON);
   else digitalWrite(RelayPin, DDHeatingOFF);
-
-}
-
-// --------------------------------------------------------------------------------
-
-// Timer Interrupt Handler DDPIDSampleRateOutMicro = 20 ms
-void TimerInterruptRelay()
-{
-
-  //if ( PIDInput < DDPIDInputMIN || PIDInput > DDPIDInputMAX )
-  //{
-  //  digitalWrite(RelayPin, DDHeatingOFF);  // make sure relay is off
-  //}
-  //else
-  //{
-  DriveOutput();
-  //}
 
 }
 
@@ -323,7 +317,8 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
     if (befehl == "OP")
     {
       float Leistung = 0;
-      if (PIDOutput > DDPIDLimitMin){Leistung = PIDOutput/DDPIDWindowSize * 100;}
+      //if (PIDOutput > DDPIDLimitMin){Leistung = PIDOutput/DDPIDWindowSize * 100;}
+      Leistung = PIDOutput;
       String ans = String(Leistung, 1);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
@@ -333,7 +328,8 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
 
     if (befehl == "HO")
     {
-      float OP_Max = DDPIDLimitMax/DDPIDWindowSize * 100;
+      //float OP_Max = DDPIDLimitMax/DDPIDWindowSize * 100;
+      float OP_Max = DDPIDLimitMax;
       String ans = String(OP_Max, 0);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
@@ -396,19 +392,24 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
     if (befehl == "OP") // OP ist nur unter bestimmten Bedingung in Eurotherm schreibbar - der Befehl dient hier zur zusammenarbeit zwische Arduino und Eurotherm
     {
       float val = value.toFloat();
-      PIDOutput = val/100 * DDPIDWindowSize;
+      //PIDOutput = val/100 * DDPIDWindowSize;
+      PIDOutput = val;
+      if (PIDOutput < DDPIDLimitMin) {PIDOutput = DDPIDLimitMin;}
       if (PIDOutput > DDPIDLimitMax) {PIDOutput = DDPIDLimitMax;}
       Serial2.println("Ausgangsleistung = " + String(PIDOutput));
     }// if OP
     
-    /*
+    
     if (befehl == "HO")
     {
-      float val = value.toFloat();
-      DDPIDLimitMax = val/100 * DDPIDWindowSize;
+      float val = value.toFloat();      
+      DDPIDLimitMax = val;
+      if (DDPIDLimitMax < 0.0) {DDPIDLimitMax = 0.0;}
+      if (DDPIDLimitMax > DDPIDOutputRange) {DDPIDLimitMax = DDPIDOutputRange;}
+      myPID.SetOutputLimits(DDPIDLimitMin, DDPIDLimitMax);      
       Serial2.println("Maximale Ausgangsleistung = " + String(DDPIDLimitMax));
     } // if HO
-    */
+    
   } // if (sollschreiben)
 } // void Eurotherm
 // - Vincent Funke - 1.2.22 - Ende
@@ -632,11 +633,7 @@ void loop() {
   // Set DAC output
 
 
-  //DDPIDLimitMin=0...DDPIDLimitMax=100 -> 0...5V
-  //float PIDOutputDAC = (PIDOutput-DDPIDLimitMin)/(DDPIDLimitMax-DDPIDLimitMin);
-  
-  //DDPIDLimitMin=0...DDPIDLimitMax=100 -> 0...5V (max. power = 10V)
-  PIDOutputDACvolts = 5.0*(PIDOutput-DDPIDLimitMin)/(DDPIDLimitMax-DDPIDLimitMin);
+  PIDOutputDACvolts = DDPIDOutputRangeDAC*PIDOutput/DDPIDOutputRange;
   if (PIDOutputDACvolts<0) PIDOutputDACvolts = 0;
   if (PIDOutputDACvolts>DDPIDLimitMaxDAC) PIDOutputDACvolts = DDPIDLimitMaxDAC; //Software limit
 
@@ -644,7 +641,7 @@ void loop() {
   PIDOutputDACbits = trunc(PIDOutputDACvolts*4095.0/5.0);
   dac.setValue(PIDOutputDACbits); 
 
-  // Check for hardware voltage limit using diode
+  // Hardware check of the voltage limit
   PIDOutputDACvoltsCheck = analogRead(DACVoltagePin)*(5.0/1023.0);
   if ( PIDOutputDACvoltsCheck > DDPIDLimitMaxDAC )  dac.setValue(PIDOutputDACbitsMax);
 
