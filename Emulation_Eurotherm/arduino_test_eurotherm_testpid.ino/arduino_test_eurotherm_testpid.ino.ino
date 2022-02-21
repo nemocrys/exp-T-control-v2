@@ -79,7 +79,7 @@ float MAX31865_get()
 // --------------------------------------------------------------------------------
 
 // Limit for additional safety. Use DDPIDLimitMin/Max for regular power control.
-const float DDPIDLimitMaxDAC = 2.0; // 0.0...10.0V (max. 5V output currently supported)
+const float DDPIDLimitMaxDAC = 1.8; // 0.0...10.0V (max. 5V output currently supported)
 
 // !!!Do not change!!!
 const float DDPIDOutputRangeDAC = 10.0; //DAC output range
@@ -202,7 +202,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
   {
     if (befehl == "PV")
     {
-      float val = MAX31865_get();
+      float val = PIDInputACT;
       String ans = String(val, 1);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
@@ -399,7 +399,6 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       Serial2.println("Ausgangsleistung = " + String(PIDOutput));
     }// if OP
     
-    
     if (befehl == "HO")
     {
       float val = value.toFloat();      
@@ -408,8 +407,8 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       if (DDPIDLimitMax > DDPIDOutputRange) {DDPIDLimitMax = DDPIDOutputRange;}
       myPID.SetOutputLimits(DDPIDLimitMin, DDPIDLimitMax);      
       Serial2.println("Maximale Ausgangsleistung = " + String(DDPIDLimitMax));
+      Serial.write(ACK); // Für Emulation notwendig!
     } // if HO
-    
   } // if (sollschreiben)
 } // void Eurotherm
 // - Vincent Funke - 1.2.22 - Ende
@@ -441,7 +440,7 @@ void setup() {
 
   myPID.SetOutputLimits(DDPIDLimitMin, DDPIDLimitMax);
   myPID.SetSampleTime(DDPIDSampleRate);
-  myPID.SetMode(MANUAL); //AUTOMATIC or MANUAL
+  myPID.SetMode(AUTOMATIC); //AUTOMATIC or MANUAL
 
   PIDInput = MAX31865_get();
 

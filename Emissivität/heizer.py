@@ -45,6 +45,7 @@ def emulation_on(Wahrheit, com, bd, parity, stopbits, bytesize):
             timeout = 2.0)
         print("Emulation/Arduino initialisiert!\n")
 
+
 class Heizer:  
     def print_type(self):   # Gibt an welcher Heizer genutzt wird
         print(self.type)
@@ -183,7 +184,7 @@ class HeizerPlatte(Heizer):                                     # IKA Heizplatte
 
 
 class HeizerEurotherm(Heizer):
-    def __init__(self, gid, uid, kp, ti, td, com, bd, parity, stopbits, bytesize):
+    def __init__(self, gid, uid, kp, ti, td, max_OP, com, bd, parity, stopbits, bytesize):
         self.type = "Eurotherm"
         self.com = com
         self.bd = bd                                
@@ -195,9 +196,10 @@ class HeizerEurotherm(Heizer):
         self.kp = kp
         self.ti = ti
         self.td = td
+        self.max_OP = max_OP
         
         self.init_heizer()
-        self.change_PID()
+        self.change_Value()                 # Änderung der PID-Parameter und anderen z.B. max. OP (Leistungsausgang)
         self.get_setting()
          
     def get_name(self):                     # Ausgabe des Instrumenten Namen (bzw. Identität)
@@ -229,7 +231,10 @@ class HeizerEurotherm(Heizer):
         befehl = 'TD'
         nameDG = self.read(befehl)
         print(f'PID-Parameter = xp = {namePG} (P-Glied), Ti = {nameIG} (I-Glied) und Td = {nameDG} (D-Glied)')
-        # eventuell noch br, HB, LB, HO einarbeiten - Fragen (dann auch in Arduino Programm)
+        # Output Limit:
+        befehl = 'HO'
+        namemOP = self.read(befehl)
+        print(f'Maximale Ausgangsleistung = {namemOP} %')
         print()
 
     def get_istwert(self):                  # Holt den Istwert 
@@ -250,7 +255,8 @@ class HeizerEurotherm(Heizer):
             befehl = 'SL' + Solltemp
             self.send(befehl)
 
-    def change_PID(self):                   # PID Parameter
+    def change_Value(self):                   # PID Parameter
+        sACK = '\x06'
         if test_on == False:
             befehl = 'XP' + str(self.kp)
             self.send(befehl)
@@ -258,21 +264,31 @@ class HeizerEurotherm(Heizer):
             self.send(befehl)
             befehl = 'TD' + str(self.td)
             self.send(befehl)
+            befehl = 'HO' + str(self.max_OP)
+            self.send(befehl)
+            if emu_on == True:
+                self.emu_write('HO', str(self.max_OP))
+                answer = schnitt_emu.readline().decode()
+                if answer == sACK:
+                    print('Befehl erfolgreich an Arduino gesendet!')
     
     def get_power_OUT(self):                # Leistung abfragen
         if test_on == False:
             befehl = 'OP'
             euroPow = self.read(befehl)
             if emu_on == True:              # Regelung PID, Leistungsregelung Arduino
-                sEOT = '\x04'
-                sETX = '\x03'
-                sSTX = '\x02'
-                bcc_write = self.bcc(befehl + euroPow)
-                send = sEOT + str(self.gid) + str(self.gid) + str(self.uid) + str(self.uid) + sSTX + befehl + euroPow + sETX + bcc_write
-                schnitt_emu.write(send.encode())
+                self.emu_write(befehl, euroPow)
         else:
             euroPow = random.uniform(0,100)                            
         return float(euroPow)
+
+    def emu_write(self, befehl, wert):               # Schreiben auf andere Schnittstelle
+        sEOT = '\x04'
+        sETX = '\x03'
+        sSTX = '\x02'
+        bcc_write = self.bcc(befehl + wert)
+        send = sEOT + str(self.gid) + str(self.gid) + str(self.uid) + str(self.uid) + sSTX + befehl + wert + sETX + bcc_write
+        schnitt_emu.write(send.encode())
 
     def bcc(self, string):
         bcc_list = []

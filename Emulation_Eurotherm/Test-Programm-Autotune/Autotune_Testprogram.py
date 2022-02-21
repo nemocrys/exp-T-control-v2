@@ -7,21 +7,8 @@ from tkinter import *
 from tkinter import ttk
 import numpy as np                              
 import matplotlib.pyplot as plt                 
-
-portName = '/dev/ttyUSB1' 
-try:
-    serial.Serial(port=portName)
-except serial.SerialException:
-    print ('Port ' + portName + ' not present')                          
-                                
-ser_py = serial.Serial(
-    port = portName,
-    baudrate = int(9600), # Emulation 19200 (8N1)
-    parity = 'E',
-    stopbits = int(1),
-    bytesize = int(7),
-    timeout = 2.0)          
-
+      
+# Funktionen:
 def bcc(string):
     bcc_list = []
     for c in string:
@@ -33,57 +20,6 @@ def bcc(string):
         bcc = (bcc^item)
     return chr(bcc)
 
-def send(write_befehl):   # Funktion um einen Befehl zu senden
-    sEOT = '\x04'
-    sETX = '\x03'
-    sSTX = '\x02'
-    sENQ = '\x05'
-    sACK = '\x06'
-    sNAK = '\x15'   
-
-    delay = 0.1
-    
-    bcc_write = bcc(write_befehl)
-    send = sEOT + str(0) + str(0) + str(3) + str(3) + sSTX + write_befehl + sETX + bcc_write
-    ser_py.write(send.encode())
-    time.sleep(delay)
-            
-    # Als Antwort beim schreiben soll das ACK = \x06 zurückkommen
-    try:
-        answer = ser_py.readline().decode()
-    except:
-        answer = ""
-        print("Decode Fehler beim lesen! - send")
-    if answer == sACK:
-        print('Befehl erfolgreich gesendet!')
-            
-    # Kontrolle ob alles OK (NAK und ein Leerer String sorgen für Wiederholung):
-    n = 0    # Die Schleife soll 10 mal durchgeführt werden 
-    while (answer == sNAK or answer == "") and n <= 10:                                         
-        # Fehler Grund ermitteln:
-        print('Gerät antwortet mit NAK! Wiederhole senden.')
-        # Nach einem NAK soll auch die Ursache des Fehlers geprintet werden
-        ser_py.write((sEOT+ str(0) + str(0) + str(3) + str(3) +'EE'+ sENQ).encode())  
-        time.sleep(delay)
-        answer = ser_py.readline().decode()
-        print(f'EE = {answer[4:-2]}')
-        # Erneute Sendung:
-        ser_py.write(send.encode())
-        time.sleep(delay)
-        try:
-            answer = ser_py.readline().decode()
-        except:
-            answer = ""
-            print("Erneuter Decode Fehler beim lesen! - send")
-        n += 1
-
-        # im folgenden wird geschaut was das EE zurückgibt, eine Null bedeutet das kein Fehler vorliegt
-        ser_py.write((sEOT+ str(0) + str(0) + str(3) + str(3) +'EE'+ sENQ).encode())
-        time.sleep(delay)
-        answer = ser_py.readline().decode()
-        if answer[4:-2] != '0000':
-            print(f'EE = {answer[4:-2]}')
-            
 def read(read_befehl, schnitt, delay):            # Funktion zum Lesen eines Wertes + BCC Prüfung
     sEOT = '\x04'
     sENQ = '\x05'
@@ -101,12 +37,12 @@ def read(read_befehl, schnitt, delay):            # Funktion zum Lesen eines Wer
             
         # Kontrolle BCC
         bcc_control = bcc(read_befehl + value)
-        if bcc_control == bcc_read:
-            print ('BCC Stimmt!')
+        if bcc_control != bcc_read:
+            print ('BCC Stimmt Nicht!')
 
         # Kontrolle ob alles OK:
-        n = 0    # Die Schleife soll 10 mal durchgeführt werden 
-        while bcc_control != bcc_read and n <= 10:                    # sollte der BCC nicht gleich sein, wird der Befehl nochmal gesendet
+        n = 0    # Die Schleife soll 4 mal durchgeführt werden 
+        while bcc_control != bcc_read and n <= 4:                    # sollte der BCC nicht gleich sein, wird der Befehl nochmal gesendet
             print('BCC der Antwort ist falsch. Wiederhole Abfrage!')
             schnitt.write  (send.encode())
             time.sleep(delay)
@@ -174,12 +110,7 @@ def fenster_GUI():
     fenster.after(10, task) 
     fenster.mainloop()  
 
-def get_Measurment():
-    sEOT = '\x04'
-    sETX = '\x03'
-    sSTX = '\x02'
-    sENQ = '\x05'
-    
+def get_Measurment():    
     time_actual = datetime.datetime.now()
     dt = (time_actual - time_start).total_seconds()
     
@@ -191,12 +122,17 @@ def get_Measurment():
     listPowEu.append(float(euroPow))
     
     # Arduino:
-    bcc_write = bcc('OP' + euroPow)
-    send = sEOT + str(0) + str(0) + str(3) + str(3) + sSTX + 'OP' + euroPow + sETX + bcc_write
-    schnitt_emu.write(send.encode())
+    if Ardu_on == True:
+        sEOT = '\x04'
+        sETX = '\x03'
+        sSTX = '\x02'
     
-    arduPow = read('OP', schnitt_emu, 0.1)
-    listPowAr.append(float(arduPow))
+        bcc_write = bcc('OP' + euroPow)
+        send = sEOT + str(0) + str(0) + str(3) + str(3) + sSTX + 'OP' + euroPow + sETX + bcc_write
+        schnitt_emu.write(send.encode())
+        time.sleep(0.5)
+        arduPow = read('OP', schnitt_emu, 0.5)
+        listPowAr.append(float(arduPow))
     
     # Autoscaling:
     AutoScroll(ax1, 2, 2)            # Temperatur
@@ -205,7 +141,8 @@ def get_Measurment():
     # Grafiken - Heizer
     Update_Graph(line1, listTempPt)                
     Update_Graph(line2, listPowEu)                 
-    Update_Graph(line3, listPowAr)
+    if Ardu_on == True:
+        Update_Graph(line3, listPowAr)
         
     figure.canvas.draw()            
     figure.canvas.flush_events()
@@ -249,7 +186,8 @@ def Start():
         
         ax2 = plt.subplot(122)                                                              
         line2, = ax2.plot(listTiRe, listTempPt, 'b', label='Output Eurotherm')
-        line3, = ax2.plot(listTiRe, listTempPt, 'g', label='Output Arduino') 
+        if Ardu_on == True:
+            line3, = ax2.plot(listTiRe, listTempPt, 'g', label='Output Arduino') 
         plt.ylabel("Ausgangsleistung in %",fontsize=12)
         plt.xlabel("Zeit in s",fontsize=12)
         plt.legend(loc='best') 
@@ -270,18 +208,37 @@ def Stop():
 #send('SL50')
 nStart = False
 
-portNameS = '/dev/ttyACM0'
+# Schnittstelle Eurotherm:
+portName = '/dev/ttyUSB0' 
 try:
-    serial.Serial(port=portNameS)
+    serial.Serial(port=portName)
 except serial.SerialException:
-    print ('Port ' + portNameS + ' not present')
-schnitt_emu = serial.Serial(
-    port = portNameS,
-    baudrate = int(19200),
-    parity = 'N',
+    print ('Port ' + portName + ' not present')                          
+                                
+ser_py = serial.Serial(
+    port = portName,
+    baudrate = int(9600), # Emulation 19200 (8N1)
+    parity = 'E',
     stopbits = int(1),
-    bytesize = int(8),
+    bytesize = int(7),
     timeout = 2.0)
-print("Emulation/Arduino initialisiert!\n")
+print("Eurothem initialisiert!\n")
+
+# Schnittstelle Arduino/Emulation:
+Ardu_on = True                      # True = Arduino und Eurotherm, False = Nur Eurotherm
+if Ardu_on == True:
+    portNameS = '/dev/ttyACM0'
+    try:
+        serial.Serial(port=portNameS)
+    except serial.SerialException:
+        print ('Port ' + portNameS + ' not present')
+    schnitt_emu = serial.Serial(
+        port = portNameS,
+        baudrate = int(19200),
+        parity = 'N',
+        stopbits = int(1),
+        bytesize = int(8),
+        timeout = 2.0)
+    print("Emulation/Arduino initialisiert!\n")
 
 fenster_GUI()

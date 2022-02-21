@@ -76,7 +76,7 @@ def Init_File():                                                          # Erst
             fo.write("Temp. Platte [°C]".ljust(22))
         if heizer_wahl == 'Eurotherm':
             fo.write("Out.Leistung [%]".ljust(22))
-        fo.write("Temp. PT1000 [°C]".ljust(22))
+        fo.write("Regler Temp. [°C]".ljust(22))
         for name, Pyro in pyroKW.items():
             fo.write(f"Temp. {name} [°C]".ljust(35))
         for name, Pyro in pyroLW.items():
@@ -121,6 +121,7 @@ def Init_File():                                                          # Erst
             if pt.vergleich == True:
                 vergleich_ort = name
         foEE.write(f'Vergleichsgeräte für die Pyrometeranpassung: {vergleich_ort}\n\n')
+        print(f'\nVergleichssensor: {vergleich_ort}\n')
         if args.log == True:   logging.info(f'Vergleichsgerät = {vergleich_ort}')
         foEE.write('Rezept:\n')
         foEE.write('-------\n')
@@ -454,31 +455,40 @@ def get_Measurment():                                                     # Aufn
         if args.log == True:   logging.info(f'Temp.Listen Länge von Adafruit {name} = {len(pt.list)}')
     listTiRe.append(dt/60) # Die x-Achse soll in Minuten angegeben werden!
     if args.log == True:   logging.info(f'Listen Länge von listTiRe = {len(listTiRe)}')  
+
+    # Sollwert in Liste:
+    listSollwert.append(float(TempTrep[loop]))
+    if args.log == True:   logging.info(f'Listen Länge von listSollwert = {len(listSollwert)}')  
     if args.log == True:   logging.info('Messwerte geholt und Listen aktualisiert')
 
     # Vergleichstemperatur für Anpassung bestimmen:   
-    tempVergleich = listTempPt[-1]                 # Wenn kein Vergleichssensor unter den Adafruit Pt100 ausgewählt, dann wird der Regelsensor ausgewählt!
+    tempVergleich = listTempPt[-1]                  # Wenn kein Vergleichssensor unter den Adafruit Pt100 ausgewählt, dann wird der Regelsensor ausgewählt!
+    if tempVergleich == 0:                          # Fehlerbehandlung (bei Null wird der alte Wert wieder genommen!)
+        tempVergleich = listTempPt[-2]
+        if args.log == True:   logging.info('Vergleichstemperatur war Null!')
     for name, pt in pt_sam.items():
         if pt.vergleich == True:
             tempVergleich = pt.list[-1]             # Der Letzte Wert in der ausgewählten Liste ist der aktuelle Wert!    
+            if tempVergleich == 0:                  # Fehlerbehandlung
+                tempVergleich = pt.list[-2]
+                if args.log == True:   logging.info('Vergleichstemperatur war Null!')
     if args.log == True:   logging.info('Vergleichstemperatur wird bestimmt!')
     if args.log == True:   logging.info(f'Vergleichstemperatur = {tempVergleich}')
 
     # Temperatur File wird erneut geöffnet und dann mit den Daten belegt:
-    if nStart == True:                                                                 # nStart = True bedeutet das diese Funktion erts nach Betätigung des Start Buttons funktionieren sollen!
-        with open(Folder + '/' + FileOutName,"a", encoding="utf-8") as fo:
-                time_abs = datetime.datetime.now().strftime('%H:%M:%S')                                                                                      
-                fo.write(f"{time_abs:<15}{dt:<20.1f}")
-                fo.write(f'{zusatz:<22.1f}') # Ausgangsleistung oder Heizplattentemperatur - Wahl Heizer beachten
-                fo.write(f'{tempPt:<22.1f}')
-                for name, Pyro in pyroKW.items():
-                    fo.write(f"{Pyro.listT[-1]:<35.1f}")                            
-                for name, Pyro in pyroLW.items():
-                    fo.write(f"{Pyro.listT[-1]:<35.1f}")
-                for name, pt in pt_sam.items():
-                    fo.write(f"{pt.list[-1]:<35.1f}")
-                fo.write('\n')
-                if args.log == True:   logging.info('File wird mit Messwerten erweitert') 
+    with open(Folder + '/' + FileOutName,"a", encoding="utf-8") as fo:
+        time_abs = datetime.datetime.now().strftime('%H:%M:%S')                                                                                      
+        fo.write(f"{time_abs:<15}{dt:<20.1f}")
+        fo.write(f'{zusatz:<22.1f}') # Ausgangsleistung oder Heizplattentemperatur - Wahl Heizer beachten
+        fo.write(f'{tempPt:<22.1f}')
+        for name, Pyro in pyroKW.items():
+            fo.write(f"{Pyro.listT[-1]:<35.1f}")                            
+        for name, Pyro in pyroLW.items():
+            fo.write(f"{Pyro.listT[-1]:<35.1f}")
+        for name, pt in pt_sam.items():
+            fo.write(f"{pt.list[-1]:<35.1f}")
+        fo.write('\n')
+        if args.log == True:   logging.info('File wird mit Messwerten erweitert') 
 
     # Rezept wird abgearbeitet + Emissionsgradanpassung + Emis. File Bearbeitung:
     Area = float(TempArea[loop])
@@ -517,24 +527,24 @@ def get_Measurment():                                                     # Aufn
         if nEMess <= 15:                                                                # das soll nur 16 mal durchgeführt werden, da die Rundung nah 10 - 13 Durschgängen keine Änderung mehr bringt 
             with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:        # Anpassung durchführen
                 foE.write(f'{time_abs:<15}{dt:<15.1f}')
-                for name, Pyro in pyroLW.items():
-                    Pyro.e_py, Pyro.e_Drauf = Emissions_Anpassung(Pyro.listT[-1], tempVergleich, Pyro.e_py, Pyro.e_Drauf, 100, 10)
-                    Pyro.write_pyro_para('e', Pyro.e_py)
-                    foE.write(f'{Pyro.e_py:<35}')
                 for name, Pyro in pyroKW.items():
                     Pyro.e_py, Pyro.e_Drauf = Emissions_Anpassung(Pyro.listT[-1], tempVergleich, Pyro.e_py, Pyro.e_Drauf, 100, 5)
                     Pyro.write_pyro_para('e', Pyro.e_py)
                     foE.write(f'{Pyro.e_py:<35}') 
+                for name, Pyro in pyroLW.items():
+                    Pyro.e_py, Pyro.e_Drauf = Emissions_Anpassung(Pyro.listT[-1], tempVergleich, Pyro.e_py, Pyro.e_Drauf, 100, 10)
+                    Pyro.write_pyro_para('e', Pyro.e_py)
+                    foE.write(f'{Pyro.e_py:<35}')
                 foE.write('\n')
                 nEMess += 1
             if nEMess == 15:                                                                       # Speichere die endgültigen Emissionsgrade
                 with open(Folder + '/' + FileOutNameEEnd,"a", encoding="utf-8") as foEE:
                     foEE.write(f'{Soll:<25}')
                     foEE.write(f'{tempVergleich:<35.1f}')
-                    for name, Pyro in pyroLW.items():
-                        foEE.write(f'{Pyro.e_py:<35}')
                     for name, Pyro in pyroKW.items():
                         foEE.write(f'{Pyro.e_py:<35}') 
+                    for name, Pyro in pyroLW.items():
+                        foEE.write(f'{Pyro.e_py:<35}')
                     foEE.write('\n')
         Emis_Update()                                                                              # Der Emissionsgrad wird aus dem Gerät gelesen und in eine Liste getan
                   
@@ -611,8 +621,9 @@ def get_Measurment():                                                     # Aufn
             AutoScroll(ax4, False, 0, 101, 0, 1000, 1, 1)                                   # Emissionsgrad (AutoScroll aus nicht vorhanden - die 6 Werte nach False sind dadurch egal)
                 
             # Grafiken - Heizer
-            Update_Graph(line1, listTempPt)                 # Regelsensor
+            Update_Graph(line1, listTempPt)                 # Regelsensor (IStwert)
             Update_Graph(line2, listZusatz)                 # Extra (Temperatur oder Leistung)
+            Update_Graph(line3, listSollwert)               # Sollwert
        
             # Grafik Temperatur Pyrometer, Adafruit (Pt100)
             for name, Pyro in pyroKW.items():
@@ -711,8 +722,8 @@ def save():                                                               # Funk
 def Start():                                                              # Befehl zum Starten der Hardware + Der Plot wird erzeugt und nach erstmaligen Start auch der File neu erstellt
 ###########################################################################
     global time_start, nStart
-    global figure, ax1, ax2, ax3, ax4, line1, line2
-    global listTiRe, listTempPt, listZusatz
+    global figure, ax1, ax2, ax3, ax4, line1, line2, line3
+    global listTiRe, listTempPt, listZusatz, listSollwert
     
     if nStart == False:                                         # Soll verhindern das eine neue Grafik bei mehreren Drücken von Start aufgeht! - Verriegellung bis das Programm beendet wird
         # File erzeugen:
@@ -726,6 +737,7 @@ def Start():                                                              # Befe
         listTiRe = []       # x-Wert der Grafik (Zeit)
         listTempPt = []     # PT1000 oder Pt100 der am Heizer/Heizerregler angeschlossen ist
         listZusatz = []     # Heizer Zusatz Daten (Ausgangsleistung oder Heizplattentemperatur)
+        listSollwert = []   # Sollwert
 
         # Hardware starten:
         heizer_wahl = config['Heizer']['Auswahl']['String']
@@ -742,13 +754,15 @@ def Start():                                                              # Befe
         figure = plt.figure(figsize=(12,9))                                                 # Fenster Größe des Diagrammes festlegen
         figure.suptitle("Temperatur + Emissionsgrad Messungen",fontsize=25)                 # Erzeugt eine Gesamt Überschrifft des Graphen
             
-        # Regelsensor:
+        # Regelsensor und Sollwert:
         sensor = config['Strings']['Regelsensor']
         ax1 = plt.subplot(221)                                                              # Erzeugt ersten Teilgraph
-        line1, = ax1.plot(listTiRe, listTempPt, 'r', label=sensor)                                                            
-        plt.ylabel("Temperatur Kontrollsensor in °C",fontsize=12)
+        line1, = ax1.plot(listTiRe, listTempPt, 'r', label=sensor)  
+        line3, = ax1.plot(listTiRe, listSollwert, 'b', label='Sollwert')                                                          
+        plt.ylabel("Temperatur in °C",fontsize=12)
         plt.legend(loc='best') 
         plt.grid()
+        if args.log == True:   logging.info('Diagramm Ist- und Sollwert erstellt') 
             
         # Linie Zusatz (Temperatur oder Lesitung):
         ax2 = plt.subplot(223)                                                              # erzeugt zweiten Teilgraph         
@@ -872,30 +886,33 @@ else:
 
 # Pyrometer KW:
 pyroKW = {}
-for name, data in config['Pyrometer_KW'].items():
-    pyKW = pyrometer.PyrometerKW(name, **data)
-    pyroKW.update({name: pyKW})                 # Erzeugt einen Eintrag in das Dictionarie
-    pyKW.anpassung(100,100)
-print() # zu Abhebung im Konsolenfesnter
+if 'Pyrometer_KW' in config:
+    for name, data in config['Pyrometer_KW'].items():
+        pyKW = pyrometer.PyrometerKW(name, **data)
+        pyroKW.update({name: pyKW})                 # Erzeugt einen Eintrag in das Dictionarie
+        pyKW.anpassung(100,100)
+    print() # zu Abhebung im Konsolenfesnter
 
 # Pyrometer LW:
 pyroLW = {}
 nb_head = 0
-array_data = config['Pyrometer_LW']['Schnittstelle']
-schnittstelle_LW = pyrometer.Array(**array_data)
-for name, data in config['Pyrometer_LW']['Geraete'].items():
-    pyLW = pyrometer.PyrometerLW(name, schnittstelle=schnittstelle_LW.ser_py, **data)
-    pyroLW.update({name: pyLW})        
-    pyLW.anpassung(100,100)
-    nb_head = pyLW.Get_nb_of_head()
-print(f'Es gibt {nb_head} langwellige Pyrometer!\n')
+if 'Pyrometer_LW' in config:
+    array_data = config['Pyrometer_LW']['Schnittstelle']
+    schnittstelle_LW = pyrometer.Array(**array_data)
+    for name, data in config['Pyrometer_LW']['Geraete'].items():
+        pyLW = pyrometer.PyrometerLW(name, schnittstelle=schnittstelle_LW.ser_py, **data)
+        pyroLW.update({name: pyLW})        
+        pyLW.anpassung(100,100)
+        nb_head = pyLW.Get_nb_of_head()
+    print(f'Es gibt {nb_head} langwellige Pyrometer!\n')
 
 # Adafruit - Pt100
 pt_sam = {}
-for name, data in config['Pt100'].items():
-    pt100 = adafruit.Adafruit(name, **data)
-    pt_sam.update({name: pt100})
-print() # zu Abhebung im Konsolenfesnter
+if 'Pt100' in config:
+    for name, data in config['Pt100'].items():
+        pt100 = adafruit.Adafruit(name, **data)
+        pt_sam.update({name: pt100})
+    print() # zu Abhebung im Konsolenfesnter
 
 # Emissionsgrad Bestimmung - für Anpassung:
 nEMess = 0

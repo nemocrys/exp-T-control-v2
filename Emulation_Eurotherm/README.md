@@ -104,7 +104,7 @@ Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm
     Beim Lesen werden bestimmte Variablen wie Sollwert, PID-Parameter und Isttemperatur von dem Regelsensor ausgelesen.     
     Beim Schreiben wird der Wert von einem String in einen Float oder Integer umgewandelt und der Variable übergeben. 
 
-    Bei dem Lesebefehlen muss man nun den BCC Wert beachten, da diese von dem Hauptprogramm bzw. heizer.py (anderes Programm) kontrolliert wird. Dazu wird bei jedem Lesebefehl die Funktion BCC ausgelöst. Diese Funktion berechnet einen Charakter aus ASCII Zeichen. Diese    Berechnung erfolgt mit dem XOR was in der Programmierung durch das "^" gekennzeichnet wird. In der Funktion wird zunächst die Länge von Code und Wert bestimmt, weil diese unterschiedlich lang sind. daraufhin wird in einer For-Schleife jedes Zeichen als Zeichen (Charakter) ausgelesen und in den BCC berechnet. Zum Schluss wird eine 3 hinzugerechnet, welche das ETX kennzeichnet. Weiteres kann man im Readme des anderen Programmes (Emissivität) nachlesen. 
+    Bei dem Lesebefehlen muss man nun den BCC Wert beachten, da diese von dem Hauptprogramm bzw. heizer.py (Emissivitätsprogram) kontrolliert wird. Dazu wird bei jedem Lesebefehl die Funktion BCC ausgelöst. Diese Funktion berechnet einen Charakter aus ASCII Zeichen. Diese    Berechnung erfolgt mit dem XOR was in der Programmierung durch das "^" gekennzeichnet wird. In der Funktion wird zunächst die Länge von Code und Wert bestimmt, weil diese unterschiedlich lang sind. daraufhin wird in einer For-Schleife jedes Zeichen als Zeichen (Charakter) ausgelesen und in den BCC berechnet. Zum Schluss wird eine 3 hinzugerechnet, welche das ETX kennzeichnet. Weiteres kann man im Readme des anderen Programmes (Emissivität) nachlesen.  
 
 3. **Einsparrungen:**
     - Die Antwort für das schreiben ist immer ACK!
@@ -126,6 +126,17 @@ Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm
         <img src="Bilder/zweite_Schnittstelle.jpg" alt="Zusatz Extra Schnittstelle" title="Zweite Schnittstelle verfügbar" width=300/>  
 
         Die Schnittstelle kann man mit Serial1 oder Serial2 (je nach Pin-Belegung von TX und RX) aufgerufen. Durch diese Erweiterung kann man das Programm debugen, indem man die Variablen auf diese Schnittstelle ausgeben lässt. Würde man mit nur Serial arbeiten, würde man sich Dinge in seine Antworten schreiben.
+
+        <img src="Bilder/Putty.png" alt="Zusatz Extra Schnittstelle" title="Zweite Schnittstelle Ausgabe"/> 
+
+        Im Putty werden verschiedene Sachen ausgegeben. Auf dem Bild kann man ein Beispiel sehen, die Ausgaben sind aber noch mehr geworden und werden im folgenden Kurz aufgezählt.
+
+        - Eingelesene Zeichen (siehe Bild)   
+        - Eingelesener Code (Mnemonik - siehe Bild)
+        - bei Sollwertänderung - vorheriger und neuer Sollwert (nur bei Emulation)
+        - Ausgangsleistung (siehe Bild)
+        - Maximale Ausgangsleistung
+        - Variablen: PIDOutputDACvolts, PIDOutputDACbits, PIDOutputDACvoltsCheck & DDPIDLimitMaxDAC
 
 5. **Variante 3:**   
 In Variante 3 wird "myPID.SetMode(AUTOMATIC)" auf MANUAL umgestellt. Der Arduino bekommt nun vom Eurotherm Gerät den Wert vom Mnemonic Befehl "OP" und rechnet ihn um bevor er diesen in die Variable "PIDOutput" setzt.    

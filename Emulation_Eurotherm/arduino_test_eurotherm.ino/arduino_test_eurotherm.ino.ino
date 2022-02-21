@@ -78,7 +78,7 @@ float MAX31865_get()
 // ---------------------------------------- DAC
 // --------------------------------------------------------------------------------
 
-#define DDPIDLimitMaxDAC   1.0
+#define DDPIDLimitMaxDAC   1
 
 float PIDOutputDACvolts = 0;
 float PIDOutputDACvoltsCheck = 0;
@@ -103,7 +103,7 @@ MCP4725 dac(0x62);
 #define DDPIDInputMAX 400
 
 #define DDPIDWindowSize 20000
-#define DDPIDLimitMin   1000
+#define DDPIDLimitMin   0
 #define DDPIDLimitMax   10000
 #define DDPIDSampleRate 200
 #define DDPIDSampleRateMicro 200000
@@ -323,6 +323,16 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       antwort = "O1" + ans + ETX + bcc;
       Serial.print(antwort);
     } // if OP
+
+    if (befehl == "HO")
+    {
+      float OP_Max = DDPIDLimitMax/DDPIDWindowSize * 100;
+      String ans = String(OP_Max, 0);
+      char bcc = BCC(befehl, ans);
+      Serial.write(STX);
+      antwort = "HO" + ans + ETX + bcc;
+      Serial.print(antwort);
+    } // if HO
   } // if
 
   if (sollschreiben)     // Schreiben:
@@ -383,6 +393,15 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       if (PIDOutput > DDPIDLimitMax) {PIDOutput = DDPIDLimitMax;}
       Serial2.println("Ausgangsleistung = " + String(PIDOutput));
     }// if OP
+    
+    /*
+    if (befehl == "HO")
+    {
+      float val = value.toFloat();
+      DDPIDLimitMax = val/100 * DDPIDWindowSize;
+      Serial2.println("Maximale Ausgangsleistung = " + String(DDPIDLimitMax));
+    } // if HO
+    */
   } // if (sollschreiben)
 } // void Eurotherm
 // - Vincent Funke - 1.2.22 - Ende
@@ -483,6 +502,15 @@ void loop() {
       delay(100); 
       digitalWrite(7, LOW); 
       delay(100); 
+
+      // Überprüfung der Spannungs Werte:
+      // - Vincent Funke - 1.2.22 - Beginn
+      // Wenn man es hier printet, gehören diese Werte nicht zu der Darüberliegenden Ausgaangsleistung, sondern zur nächsten!!! 
+      Serial2.println("PIDOutputDACvolts      = " + String(PIDOutputDACvolts));
+      Serial2.println("PIDOutputDACbits       = " + String(PIDOutputDACbits));
+      Serial2.println("PIDOutputDACvoltsCheck = " + String(PIDOutputDACvoltsCheck));
+      Serial2.println("DDPIDLimitMaxDAC       = " + String(DDPIDLimitMaxDAC));
+      // Vincent Funke - 1.2.22 - Ende
     } // if
     else // einlesen = true
     {
@@ -569,6 +597,7 @@ void loop() {
       if (eingabe == "TD") {code = "TD"; eingabe = ""; }
       if (eingabe == "SL") {code = "SL"; eingabe = ""; }
       if (eingabe == "OP") {code = "OP"; eingabe = ""; }
+      if (eingabe == "HO") {code = "HO"; eingabe = ""; }
     }// else
   } // if Serial.available
   // - Vincent Funke - 1.2.22 - Ende
@@ -591,24 +620,22 @@ void loop() {
       PIDInputAVR = PIDInputAVRfilt * PIDInputACT + (1 - PIDInputAVRfilt) * PIDInputAVR;
 
       PIDInput = PIDInputAVR;
-    }
-
+    } //if
+  } // if (PIDrealc)
   // Set DAC output
-
+  
   //DDPIDLimitMin=1000...DDPIDLimitMax=10000 -> 0...5V (max. power = 10V)
   PIDOutputDACvolts = 5.0*(PIDOutput-DDPIDLimitMin)/(DDPIDLimitMax-DDPIDLimitMin);
   if (PIDOutputDACvolts<0) PIDOutputDACvolts = 0;
-  if (PIDOutputDACvolts>5) PIDOutputDACvolts = 5;
+  if (PIDOutputDACvolts>DDPIDLimitMaxDAC) PIDOutputDACvolts = DDPIDLimitMaxDAC; //Software limit
 
   // 0...5V -> 0...4095 bits
   PIDOutputDACbits = trunc(PIDOutputDACvolts*4095.0/5.0);
   dac.setValue(PIDOutputDACbits); 
 
-  // Check for voltage limit
+  // Check for hardware voltage limit using diode
   PIDOutputDACvoltsCheck = analogRead(DACVoltagePin)*(5.0/1023.0);
   if ( PIDOutputDACvoltsCheck > DDPIDLimitMaxDAC )  dac.setValue(PIDOutputDACbitsMax);
-
-  }
 
 } // loop
 

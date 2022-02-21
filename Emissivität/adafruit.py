@@ -53,14 +53,14 @@ class Adafruit:
                 print(self.sensor)
 
     def get_temperatur(self):                                   # Istwert Temperatur auslesen                                        
-            if test_on == False:
-                tempA = self.sensor.temperature
-                if dbg_on == True:
-                    print(f'Reading from {self.sensor}: {tempA} °C') 
-            else:
-                tempA = random.uniform(15,25)                                  
-            return tempA
-    
+        if test_on == False:
+            tempA = self.sensor.temperature
+            if dbg_on == True:
+                print(f'Reading from {self.sensor}: {tempA} °C') 
+        else:
+            tempA = random.uniform(15,25)                                  
+        return tempA
+
     # Grafik Einstellungen und Adafruit Liste verwalten:
     def update_list(self):
         self.list.append(self.get_temperatur())

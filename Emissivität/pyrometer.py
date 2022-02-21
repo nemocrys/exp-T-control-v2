@@ -314,7 +314,9 @@ class PyrometerLW(Pyrometer):
                 self.ser_py.write(p.encode())
                 answer = self.ser_py.readline().decode()
                 n += 1
-            
+            if "no" in answer:              # Fehlerbehandlung
+                answer = '0\r'
+
             if para == 'e':                                                         # Bei Emissionsgrad werden so sofort die Werte in einen float umgewandelt
                 answer = answer[:-1]
                 l = len(answer)

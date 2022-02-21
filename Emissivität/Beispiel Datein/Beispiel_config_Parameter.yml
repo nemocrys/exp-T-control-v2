@@ -57,18 +57,19 @@ Heizer:
     String: Eurotherm       # IKA = IKA Heizplatte, Eurotherm = Eurotherm
 
 Eurotherm:
-  gid:  0
-  uid:  3
-  kp:   1.5
-  ti:   92.5
-  td:   0
+  gid:    0
+  uid:    3
+  kp:     1.5               # Eurotherm (P - 5.8, I - 594.9, D - 99.1) / Arduino (P - 200, I - 0.3, D - 0)
+  ti:     92.5
+  td:     0
+  max_OP: 50                # in Prozent (Leistungsausgang)
 
 Strings:
   Regelsensor:  'Thermoelement K'
   Rezept:       Messreihe_Rezept.txt
   
 Delay:
-  Heizer:  0.5 # in s     (bei Emulation am besten 0.5 s nutzen!)
+  Heizer:  0.5                 # in s     (bei Emulation am besten 0.5 s nutzen!)
   
 Emulation:                     # Emulation des Leistungsausgangs (Das Eurotherm Gerät kann auch durch die Emulation in P2 ersetzt werden, dann aber bitte auf False stellen)
   Wahrheit:	True               # True gibt es nur (alles andere würde es False werden lassen)
