@@ -64,14 +64,27 @@ Adafruit_MAX31865 oMAX31865 = Adafruit_MAX31865(pinMAX31865_CS, pinMAX31865_DI, 
 
 float MAX31865_get()
 {
-  if (oMAX31865.readFault()) {
-    oMAX31865.clearFault();  // possible problem
-  }
+  uint8_t fault = oMAX31865.readFault();
+  if (fault)
+    {
+    if (fault & MAX31865_FAULT_HIGHTHRESH) { Serial2.println(F("RTD High Threshold")); }
+    if (fault & MAX31865_FAULT_LOWTHRESH) { Serial2.println(F("RTD Low Threshold")); }
+    if (fault & MAX31865_FAULT_REFINLOW) { Serial2.println(F("REFIN- > 0.85 x Bias")); }
+    if (fault & MAX31865_FAULT_REFINHIGH) { Serial2.println(F("REFIN- < 0.85 x Bias - FORCE- open")); }
+    if (fault & MAX31865_FAULT_RTDINLOW) { Serial2.println(F("RTDIN- < 0.85 x Bias - FORCE- open")); }
+    if (fault & MAX31865_FAULT_OVUV) { Serial2.println(F("Under/Over voltage")); }
+    oMAX31865.clearFault();
+    delay(50);  
+    }
+    
   if (!oMAX31865.readFault())
-  {
+    {
     return oMAX31865.temperature(DDRNOMINAL, DDRREF); //uses 79 ms time
-  }
-  else return -99.0;
+    }
+  else 
+    {
+    return -99.0;
+    }
 }
 
 // --------------------------------------------------------------------------------
@@ -102,9 +115,9 @@ MCP4725 dac(0x62);
 #define DDHeatingON  HIGH
 
 float DDPIDSetpointMIN = 0;
-float DDPIDSetpointMAX = 400;
+float DDPIDSetpointMAX = 500;
 float DDPIDInputMIN = 0;
-float DDPIDInputMAX = 400;
+float DDPIDInputMAX = 500;
 
 // Limits for PIDOutput. Applied also as safety with external PID
 float DDPIDLimitMin = 0;   //5% for relay control, 0% for DAC control
@@ -202,7 +215,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
   {
     if (befehl == "PV")
     {
-      float val = PIDInputACT;
+      float val = PIDInput;
       String ans = String(val, 1);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
