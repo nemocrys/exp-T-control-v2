@@ -59,7 +59,7 @@ Heizer:
 Eurotherm:
   gid:    0
   uid:    3
-  kp:     1.5               # Eurotherm (P - 5.8, I - 594.9, D - 99.1) / Arduino (P - 200, I - 0.3, D - 0)
+  kp:     1.5               # Eurotherm (kP - 5.8, TI - 594.9, TD - 99.1) / Arduino (kP - 200, kI - 0.3, kD - 0) - Bei Arduino brauch man ki, kp und kd als Parameter!!
   ti:     92.5
   td:     0
   max_OP: 50                # in Prozent (Leistungsausgang)
@@ -72,7 +72,7 @@ Delay:
   Heizer:  0.5                 # in s     (bei Emulation am besten 0.5 s nutzen!)
   
 Emulation:                     # Emulation des Leistungsausgangs (Das Eurotherm Gerät kann auch durch die Emulation in P2 ersetzt werden, dann aber bitte auf False stellen)
-  Wahrheit:	True               # True gibt es nur (alles andere würde es False werden lassen)
+  arduino_in:	True               # True gibt es nur (alles andere würde es False werden lassen)
   com:      '/dev/ttyUSB0'    
   bd:       19200              
   parity:   'N'

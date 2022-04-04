@@ -1,3 +1,5 @@
+# Vincent Funke
+
 ### Python Bibliotheken:
 import yaml                                     # Arbeiten mit yml Datein
 import time
@@ -5,20 +7,20 @@ import datetime                                 # Holt die Tageszeit + Datum
 import os                                       # Bibliothek für Dateipfade
 from tkinter import *                           # Damit kann man Schaltoberflächen erstellen
 from tkinter import ttk
-import numpy as np                              
+import numpy as np
 import matplotlib.pyplot as plt                 # Erzeugung von Graphen
 import argparse                                 # Werte bei Konsolenstart setzen
 import configparser                             # Auslesen einer Datei Mithilfe von Überschriften
-import logging                                  # Ereignisse in Datei speichern             
+import logging                                  # Ereignisse in Datei speichern
 import subprocess                               # Bibliothek zum Ausführen von Unterprozessen
 
 ### Eigene Bibliotheken:
-import heizer                         
-import pyrometer   
-import adafruit  
+import heizer
+import pyrometer
+import adafruit
 
 # Globale Variablen:
-global nEMess, time_start, end 
+global nEMess, time_start, end
 global nStart, Stop_Graph                          # Start und Stop Variablen
 global pyroLW, pyroKW, pt_sam                      # Init Listen für Objekte
 global figure, ax1, ax2, ax3, ax4, line1, line2    # Grafik Variablen
@@ -26,17 +28,17 @@ global listTiRe, listTempPt, listZusatz            # Listen
 global obj_heizer                                  # Objekt
 
 # Funktionen:
-###########################################################################    
+###########################################################################
 def Init_File():                                                          # Erstelle die Köpfe der File-Datei
-###########################################################################   
+###########################################################################
     global FileOutName, FileOutNameE, FileOutNameEEnd, AutoStop_Pt, AutoStop_Hp, AutoStop_Py, Folder
 
     # Variablen und Listen Initialisierung:
-    actual_date = datetime.datetime.now().strftime('%Y_%m_%d')            # Variablen für den Datei Namen 
+    actual_date = datetime.datetime.now().strftime('%Y_%m_%d')            # Variablen für den Datei Namen
     FileOutPrefix = actual_date
     FileOutIndex = str(1).zfill(2)
-    FileOutName = ''    
-    
+    FileOutName = ''
+
     # Boolche Variablen um bestimmte Aktionen zu Verriegeln oder freizuschalten
     AutoStop_Pt = False
     AutoStop_Hp = False
@@ -53,8 +55,8 @@ def Init_File():                                                          # Erst
     Folder = 'Bilder_und_Daten/Daten_vom_' + FileOutPrefix                      # Erstelle Ordner Pfad
     if not os.path.exists(Folder):                                              # schaue ob es den Ordner schon gibt
         os.makedirs(Folder)                                                     # wenn nicht dann erstelle ihn
-    if args.log == True:   logging.info(f'Ordner - {Folder} erstellt/geprüft') 
-    
+    if args.log == True:   logging.info(f'Ordner - {Folder} erstellt/geprüft')
+
     # Automatische Erzeugung von eindeutigen Filenamen, ohne das eine alte Datei überschrieben wird:
     FileOutName = FileOutPrefix + '_#' + FileOutIndex + '_temp.txt'             # Andere Dateiendungen (z.B. dat) auch möglich
     j = 1
@@ -62,12 +64,12 @@ def Init_File():                                                          # Erst
         j = j + 1                                                               # ... wenn ja wird der FleOutIndex (j) solange erhöht bis es eine neue Datei erstellen kann
         FileOutIndex = str(j).zfill(2)
         FileOutName = FileOutPrefix + '_#' + FileOutIndex + '_temp.txt'
-    print ('Output data: ', FileOutName)  
-    if args.log == True:   logging.info('File Name erzeugt') 
+    print ('Output data: ', FileOutName)
+    if args.log == True:   logging.info('File Name erzeugt')
 
     # Öffnen und Erstellen der Datei *temp.txt:
-    with open(Folder + '/' + FileOutName,"w", encoding="utf-8") as fo:                 
-        fo.write("Temperaturdaten der Geräte\n") 
+    with open(Folder + '/' + FileOutName,"w", encoding="utf-8") as fo:
+        fo.write("Temperaturdaten der Geräte\n")
         fo.write(f"Datum: {actual_date}\n\n")
         fo.write(f"Version: {version}\n\n")
         fo.write("\nabs. Zeit".ljust(15) + "rel. Zeit [s]".ljust(20))
@@ -84,12 +86,12 @@ def Init_File():                                                          # Erst
         for name, pt in pt_sam.items():
             fo.write(f"Temp. {name} [°C]".ljust(35))
         fo.write('\n')
-        if args.log == True:   logging.info('File Kopf erstellt') 
+        if args.log == True:   logging.info('File Kopf erstellt')
 
     # Datei für die Emissionswerte erstellen:
     # Alle Emissionswerte:
     FileOutNameE = FileOutPrefix + '_#' + FileOutIndex + '_Emis.txt'
-    print ('Output data: ', FileOutNameE) 
+    print ('Output data: ', FileOutNameE)
     with open(Folder + '/' + FileOutNameE,"w", encoding="utf-8") as foE:
         foE.write('Auflistung der Emissionsgrade:\n')
         foE.write(f"Datum: {actual_date}\n\n")
@@ -107,8 +109,8 @@ def Init_File():                                                          # Erst
             foE.write(f"Emiss. {name} [%]".ljust(35))
         foE.write('\n')
         if args.log == True:   logging.info('File für Emissionsgrade erstellt')
-        
-    # Nur die Letzten: 
+
+    # Nur die Letzten:
     FileOutNameEEnd = FileOutPrefix + '_#' + FileOutIndex + '_Emis_Ende.txt'
     print ('Output data: ', FileOutNameEEnd)
     with open(Folder + '/' + FileOutNameEEnd,"w", encoding="utf-8") as foEE:
@@ -138,23 +140,23 @@ def Init_File():                                                          # Erst
         foEE.write('\n')
         if args.log == True:   logging.info('File für Emissionsgrade Endwerte erstellt')
 
-###########################################################################  
-def fenster_GUI():                                                        # Enthält die Eingabefelder und Knöpfe für die Schaltoberfläche! 
-###########################################################################  
+###########################################################################
+def fenster_GUI():                                                        # Enthält die Eingabefelder und Knöpfe für die Schaltoberfläche!
+###########################################################################
     '''
     Die Abkürzungen stammen noch aus dem alten Programmcode von https://github.com/nemocrys/exp-T-control. Zum Beispiel ändert sich in dem neuen Code die bedeutung von Hp.
     Pt steht nun für Regelsensor, da dieser nun auch Ausgetauscht werden kann (Pt100, Pt1000 oder Thermoelement).
     Hp steht für das Extra Diagramm was je nach Heizer Wahl andere Parameter beinhaltet.
-    Py steht für das Diagramm mit den Pyrometer und Adafruit Modulen. 
+    Py steht für das Diagramm mit den Pyrometer und Adafruit Modulen.
     '''
-    
+
     # Definitionen der Aktionen der Knöpfe:
     def button_action_1():                  # Start Knopf
-        anweisungs_label_1.config(Start())  
+        anweisungs_label_1.config(Start())
 
     def button_action_3():                  # Beenden Knopf
         info_label.config(Stop())
-        quit()                      
+        quit()
 
     def button_action_5_Pt():                  # Autoscaling beenden Knopf - Regelsensor
         global AutoStop_Pt, xBestPt, yBestPt, xVonPt, yVonPt
@@ -164,7 +166,7 @@ def fenster_GUI():                                                        # Enth
         yBestPt = Eingabe_Koordinaten(eingabefeld_yAchsePt, change_label_yPt, 'yEnde')
         xVonPt = Eingabe_Koordinaten(eingabefeld_xVonPt, change_label_xvPt, 'xBeginn')
         yVonPt = Eingabe_Koordinaten(eingabefeld_yVonPt, change_label_yvPt, 'yBeginn')
-        
+
     def button_action_5_Hp():                  # Autoscaling beenden Knopf - Heizer Zusatz
         global AutoStop_Hp, xBestHp, yBestHp, xVonHp, yVonHp
         AutoStop_Hp = True
@@ -173,7 +175,7 @@ def fenster_GUI():                                                        # Enth
         yBestHp = Eingabe_Koordinaten(eingabefeld_yAchseHp, change_label_yHp, 'yEnde')
         xVonHp = Eingabe_Koordinaten(eingabefeld_xVonHp, change_label_xvHp, 'xBeginn')
         yVonHp = Eingabe_Koordinaten(eingabefeld_yVonHp, change_label_yvHp, 'yBeginn')
-        
+
     def button_action_5_Py():                  # Autoscaling beenden Knopf - Pyrometer + Adafruit
         global AutoStop_Py, xBestPy, yBestPy, xVonPy, yVonPy
         AutoStop_Py = True
@@ -185,34 +187,34 @@ def fenster_GUI():                                                        # Enth
 
     def button_action_6_Pt():                   # Autoscaling einschalten Knopf - Regelsensor
         global AutoStop_Pt
-        AutoStop_Pt = False  
+        AutoStop_Pt = False
 
     def button_action_6_Hp():                   # Autoscaling einschalten Knopf - Heizer Zusatz
         global AutoStop_Hp
-        AutoStop_Hp = False  
+        AutoStop_Hp = False
 
     def button_action_6_Py():                   # Autoscaling einschalten Knopf - Pyrometer + Adafruit
         global AutoStop_Py
-        AutoStop_Py = False  
+        AutoStop_Py = False
 
     def button_action_7():                      # Bild/Graph/Diagramm speichern Knopf
         save_label.config(save())
-    
+
     def button_action_17():                     # Graph aktualisieren anhalten, Toggelend
         global Stop_Graph
-        
+
         if Stop_Graph == False:
             Stop_Graph = True
             change_label_nogra.config(text="Graph Stopp")
         else:
             Stop_Graph = False
             change_label_nogra.config(text="Graph Weiter")
-        
+
     # Aufruf der sich wiederholenden Aufgabe/Funktion:
     def task():
         if nStart == True:                         # Startet nur wenn auch der Start-Knopf betätigt wird!
             get_Measurment()
-            fenster.after(sampling_Time, task) 
+            fenster.after(sampling_Time, task)
         else:
             fenster.after(10, task)                # Solange Start nicht gedrückt wird, soll der task so schnell wie möglich widerholt werden! So kommen bei größeren Messabständen keine Riesigen Lücken zum Koordinatenursprung zustande!
 
@@ -220,15 +222,15 @@ def fenster_GUI():                                                        # Enth
     def Eingabe_Koordinaten(Einagbefeld, ChangeLabel, Modi):                    # Funktion für die Einstellung der Koordinaten der Graphen
         wert = 0
         entry_text = Einagbefeld.get()                                          # Eingabe für die Koordinate
-        if (entry_text == ""):                                                  # Bei Leerem Eingabefeld wird ein Default übergeben 
-            if Modi == 'xEnde':                                                 # Je nach Modi wird etwas anderes verändert 
-                ChangeLabel.config(text="x = 100 s")
+        if (entry_text == ""):                                                  # Bei Leerem Eingabefeld wird ein Default übergeben
+            if Modi == 'xEnde':                                                 # Je nach Modi wird etwas anderes verändert
+                ChangeLabel.config(text="x = 100 min")
                 wert = 100
             elif Modi == 'yEnde':
                 ChangeLabel.config(text="y = 100 °C")
                 wert = 100
             elif Modi == 'xBeginn':
-                ChangeLabel.config(text="x startet bei 0 s")
+                ChangeLabel.config(text="x startet bei 0 min")
                 wert = 0
             elif Modi == 'yBeginn':
                 ChangeLabel.config(text="y startet bei 0 °C")
@@ -238,11 +240,11 @@ def fenster_GUI():                                                        # Enth
             if new.replace('.','').isnumeric() == True:                         # Wenn die Eingabe eine Zahl ist - so wird die Koordinate geändert
                 wert = float(new)
                 if Modi == 'xEnde':
-                    ChangeLabel.config(text="x = "+ new + " s")
+                    ChangeLabel.config(text="x = "+ new + " min")
                 elif Modi == 'yEnde':
                     ChangeLabel.config(text="y = " + new + " °C")
                 elif Modi == 'xBeginn':
-                    ChangeLabel.config(text="x beginnt bei "+ new + " s")
+                    ChangeLabel.config(text="x beginnt bei "+ new + " min")
                 elif Modi == 'yBeginn':
                     ChangeLabel.config(text="y beginnt bei " + new + " °C")
             else:                                                                # Sollte die Eingabe falsch sein, so wird es auch als Falsch ausgegeben, der Defaultwert wird ausgegeben!
@@ -328,7 +330,7 @@ def fenster_GUI():                                                        # Enth
     eingabefeld_xVonPt = Entry(fenster, bd=2, width=10)         # Beginn Skala
     eingabefeld_yVonPt = Entry(fenster, bd=2, width=10)
     # Achsen-Koordinaten Graph Heizer Zusatz
-    eingabefeld_xAchseHp = Entry(fenster, bd=2, width=10)       # Ende Skala     
+    eingabefeld_xAchseHp = Entry(fenster, bd=2, width=10)       # Ende Skala
     eingabefeld_yAchseHp = Entry(fenster, bd=2, width=10)
     eingabefeld_xVonHp = Entry(fenster, bd=2, width=10)         # Beginn Skala
     eingabefeld_yVonHp = Entry(fenster, bd=2, width=10)
@@ -344,13 +346,13 @@ def fenster_GUI():                                                        # Enth
     fenster.geometry("1200x400")
 
     # Bestimmung der Orte für die einzelnen Knöpfe, Eingabefeldern und Labels auf der Schaltoberfläche:
- 
+
     #### Start und Beenden
     anweisungs_label_1.place(x = 1030, y = 50, width=120, height=35)    # Start
     Start_button_1.place(x = 1060, y = 90, width=70, height=30)
     info_label.place(x = 1000, y = 130, width=200, height=30)           # Beenden
     exit_button.place(x = 1060, y = 160, width=70, height=40)
-        
+
     #### Auto Scaling - Knöpfe
     AutoStop_button_1_Pt.place(x=150, y=80, width=180, height=20)       # Aus - Regelsensor (kurz Pt)
     AutoStop_button_1_Hp.place(x=450, y=80, width=180, height=20)       # Aus - Heizer Zusatz (kurz Hp)
@@ -385,7 +387,7 @@ def fenster_GUI():                                                        # Enth
     eingabefeld_xVonPy.place(x=760, y=230)
     eingabefeld_yVonPy.place(x=760, y=280)
     #
-    change_label_xvPt.place(x=240, y=230, width=200, height=20)         # änderbare Labels mit Eingabewerten   
+    change_label_xvPt.place(x=240, y=230, width=200, height=20)         # änderbare Labels mit Eingabewerten
     change_label_yvPt.place(x=240, y=280, width=200, height=20)
     change_label_xvHp.place(x=540, y=230, width=200, height=20)
     change_label_yvHp.place(x=540, y=280, width=200, height=20)
@@ -412,20 +414,20 @@ def fenster_GUI():                                                        # Enth
 
     fenster.protocol("WM_DELETE_WINDOW", disable_event)               # X-Button Aus
     fenster.after(10, task)                                           # nach 1s soll die Funktion task aufgerufen werden!
-    
+
     # In der Ereignisschleife auf Eingabe des Benutzers warten.
-    if args.log == True:   logging.info('GUI erzeugt') 
-    fenster.mainloop()              
+    if args.log == True:   logging.info('GUI erzeugt')
+    fenster.mainloop()
 
 ###########################################################################
-def get_Measurment():                                                     # Aufnahme und Verarbeitung der Messwerte, Werte werden in File eingetragen und ins Diagramm übergeben! Emissionsgradanpassung in der Funktion.                                                
-###########################################################################      
+def get_Measurment():                                                     # Aufnahme und Verarbeitung der Messwerte, Werte werden in File eingetragen und ins Diagramm übergeben! Emissionsgradanpassung in der Funktion.
+###########################################################################
     global loop, StartConfig, nextTempIn, nEMess, end
-    
+
     # Zeiten für das weitere Arbeiten und für das Dokument:
     time_abs = datetime.datetime.now().strftime('%H:%M:%S')
     time_actual = datetime.datetime.now()
-        
+
     # Messwerte holen und Listen aktualisieren:
     dt = (time_actual - time_start).total_seconds()
     if args.log == True:   logging.info(f'Zeit = {dt}')
@@ -454,21 +456,21 @@ def get_Measurment():                                                     # Aufn
         if args.log == True:   logging.info(f'Messwerte Adafruit {name} = {pt.list[-1]}')
         if args.log == True:   logging.info(f'Temp.Listen Länge von Adafruit {name} = {len(pt.list)}')
     listTiRe.append(dt/60) # Die x-Achse soll in Minuten angegeben werden!
-    if args.log == True:   logging.info(f'Listen Länge von listTiRe = {len(listTiRe)}')  
+    if args.log == True:   logging.info(f'Listen Länge von listTiRe = {len(listTiRe)}')
 
     # Sollwert in Liste:
     listSollwert.append(float(TempTrep[loop]))
-    if args.log == True:   logging.info(f'Listen Länge von listSollwert = {len(listSollwert)}')  
+    if args.log == True:   logging.info(f'Listen Länge von listSollwert = {len(listSollwert)}')
     if args.log == True:   logging.info('Messwerte geholt und Listen aktualisiert')
 
-    # Vergleichstemperatur für Anpassung bestimmen:   
+    # Vergleichstemperatur für Anpassung bestimmen:
     tempVergleich = listTempPt[-1]                  # Wenn kein Vergleichssensor unter den Adafruit Pt100 ausgewählt, dann wird der Regelsensor ausgewählt!
     if tempVergleich == 0:                          # Fehlerbehandlung (bei Null wird der alte Wert wieder genommen!)
         tempVergleich = listTempPt[-2]
         if args.log == True:   logging.info('Vergleichstemperatur war Null!')
     for name, pt in pt_sam.items():
         if pt.vergleich == True:
-            tempVergleich = pt.list[-1]             # Der Letzte Wert in der ausgewählten Liste ist der aktuelle Wert!    
+            tempVergleich = pt.list[-1]             # Der Letzte Wert in der ausgewählten Liste ist der aktuelle Wert!
             if tempVergleich == 0:                  # Fehlerbehandlung
                 tempVergleich = pt.list[-2]
                 if args.log == True:   logging.info('Vergleichstemperatur war Null!')
@@ -477,18 +479,18 @@ def get_Measurment():                                                     # Aufn
 
     # Temperatur File wird erneut geöffnet und dann mit den Daten belegt:
     with open(Folder + '/' + FileOutName,"a", encoding="utf-8") as fo:
-        time_abs = datetime.datetime.now().strftime('%H:%M:%S')                                                                                      
+        time_abs = datetime.datetime.now().strftime('%H:%M:%S')
         fo.write(f"{time_abs:<15}{dt:<20.1f}")
         fo.write(f'{zusatz:<22.1f}') # Ausgangsleistung oder Heizplattentemperatur - Wahl Heizer beachten
         fo.write(f'{tempPt:<22.1f}')
         for name, Pyro in pyroKW.items():
-            fo.write(f"{Pyro.listT[-1]:<35.1f}")                            
+            fo.write(f"{Pyro.listT[-1]:<35.1f}")
         for name, Pyro in pyroLW.items():
             fo.write(f"{Pyro.listT[-1]:<35.1f}")
         for name, pt in pt_sam.items():
             fo.write(f"{pt.list[-1]:<35.1f}")
         fo.write('\n')
-        if args.log == True:   logging.info('File wird mit Messwerten erweitert') 
+        if args.log == True:   logging.info('File wird mit Messwerten erweitert')
 
     # Rezept wird abgearbeitet + Emissionsgradanpassung + Emis. File Bearbeitung:
     Area = float(TempArea[loop])
@@ -497,17 +499,17 @@ def get_Measurment():                                                     # Aufn
     lenght = len(TempTrep)                                                              # Um das Ende des Ablaufes zu erkennen
     jetzt =  datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')                      # aktuelle Zeit
 
-    if (Soll + Area) < tempPt or (Soll - Area) > tempPt:                                # Solange der Istwert außerhalb des Bereiches ist wird StartConfig auf False gesetzt                                                             
+    if (Soll + Area) < tempPt or (Soll - Area) > tempPt:                                # Solange der Istwert außerhalb des Bereiches ist wird StartConfig auf False gesetzt
         if StartConfig == True:                                                         # Sollte StartConfig gerade True sein, so wird folgendes passieren:
             with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:            # 1. Wenn der Bereich verlassen wird, soll dies gemerkt werden.
                 foE.write(f'- - - Außerhalb des Bereiches - {jetzt} - - -\n\n')             # 2. Alle Emissionsgrade wieder auf 100 % setzen
-                if args.log == True:   logging.info('Außerhalb des gegeben Temperaturbereiches - Emissionsgrade auf 100 %') 
+                if args.log == True:   logging.info('Außerhalb des gegeben Temperaturbereiches - Emissionsgrade auf 100 %')
                 for name, Pyro in pyroLW.items():
                     Pyro.write_pyro_para('e', 100)
                     Pyro.anpassung(100, 100)
                 for name, Pyro in pyroKW.items():
                     Pyro.write_pyro_para('e', 100)
-                    Pyro.anpassung(100, 100)                    
+                    Pyro.anpassung(100, 100)
         Emis_Update()                                                                   # Der Emissionsgrad wird aus dem Gerät gelesen und in eine Liste getan
         StartConfig = False
     else:                                                                               # Wenn im Bereich dann wird das folgende abgearbeitet:
@@ -515,22 +517,22 @@ def get_Measurment():                                                     # Aufn
             starttimeConfig = datetime.datetime.now()                                   # Startzeit - Bereich erreicht
             min = datetime.timedelta(minutes=Time)                                      # Wie lange muss die Kurve in dem Bereich bleiben
             nextTempIn = str(starttimeConfig + min).split('.')[0]                       # Berechne Endzeit und erzeuge String, lässt das Datum dran! (die Nachkommerstellen der Sekunden werden abgetrennt)
-            print(f'Nächster Loop voraussichtlich um {nextTempIn.split(" ")[1]} Uhr am {nextTempIn.split(" ")[0]}!')           
-            if args.log == True:   logging.info('Beginn der Zeitmessung + Emissionsgrad ') 
+            print(f'Nächster Loop voraussichtlich um {nextTempIn.split(" ")[1]} Uhr am {nextTempIn.split(" ")[0]}!')
+            if args.log == True:   logging.info('Beginn der Zeitmessung + Emissionsgrad ')
             with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:
                 foE.write(f'- - - Nächster Loop voraussichtlich um {nextTempIn.split(" ")[1]} Uhr am {nextTempIn.split(" ")[0]}! - - -\n')
                 foE.write(f'- - - Zyklus {loop + 1} - {Soll} °C - - -\n')
             nEMess = 0                                                                  # durch die Null werden 16 Werte aufgenommen
-            StartConfig = True                                                          # verriegelt das if bis nächsten Zyklus oder bei vorzeitigen Sollwertbereich austritt 
-            
+            StartConfig = True                                                          # verriegelt das if bis nächsten Zyklus oder bei vorzeitigen Sollwertbereich austritt
+
         # Emissionsgrad Anpassung - Ziel Temp.Oberfläche = Temp.Pyro - Files werden beschrieben:
-        if nEMess <= 15:                                                                # das soll nur 16 mal durchgeführt werden, da die Rundung nah 10 - 13 Durschgängen keine Änderung mehr bringt 
+        if nEMess <= 15:                                                                # das soll nur 16 mal durchgeführt werden, da die Rundung nah 10 - 13 Durschgängen keine Änderung mehr bringt
             with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:        # Anpassung durchführen
                 foE.write(f'{time_abs:<15}{dt:<15.1f}')
                 for name, Pyro in pyroKW.items():
                     Pyro.e_py, Pyro.e_Drauf = Emissions_Anpassung(Pyro.listT[-1], tempVergleich, Pyro.e_py, Pyro.e_Drauf, 100, 5)
                     Pyro.write_pyro_para('e', Pyro.e_py)
-                    foE.write(f'{Pyro.e_py:<35}') 
+                    foE.write(f'{Pyro.e_py:<35}')
                 for name, Pyro in pyroLW.items():
                     Pyro.e_py, Pyro.e_Drauf = Emissions_Anpassung(Pyro.listT[-1], tempVergleich, Pyro.e_py, Pyro.e_Drauf, 100, 10)
                     Pyro.write_pyro_para('e', Pyro.e_py)
@@ -542,12 +544,12 @@ def get_Measurment():                                                     # Aufn
                     foEE.write(f'{Soll:<25}')
                     foEE.write(f'{tempVergleich:<35.1f}')
                     for name, Pyro in pyroKW.items():
-                        foEE.write(f'{Pyro.e_py:<35}') 
+                        foEE.write(f'{Pyro.e_py:<35}')
                     for name, Pyro in pyroLW.items():
                         foEE.write(f'{Pyro.e_py:<35}')
                     foEE.write('\n')
         Emis_Update()                                                                              # Der Emissionsgrad wird aus dem Gerät gelesen und in eine Liste getan
-                  
+
         # Prüfen ob der nächste Rezept-Zyklus Starten soll:
         if jetzt >= nextTempIn:                                                         # Vergleicht die beiden Zeiten
             with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:
@@ -557,38 +559,40 @@ def get_Measurment():                                                     # Aufn
                 print()
                 with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:
                     foE.write(f'- - - Rezept ist abgeschlossen! - {endtime} - - -\n')
-                    if args.log == True:   logging.info('Rezept abgeschlossen')                                                                  
+                    if args.log == True:   logging.info('Rezept abgeschlossen')
                 end = True  # Verhindert das eine Nachricht in foE geschrieben wird
                 Stop()
                 if Stop_Graph == True:                                                                      # Wenn die aktuelle Grafik gesperrt ist, so wird die Grafik vor beenden neu erstellt
-                    figureEnd = plt.figure(figsize=(12,9))                                                
+                    figureEnd = plt.figure(figsize=(12,9))
                     figureEnd.suptitle("Temperatur + Emissionsgrad Messungen",fontsize=25)
                     # Linie PT1000
-                    ax1End = plt.subplot(221)                                                              # Erzeugt ersten Teilgraph
-                    line1End, = ax1End.plot(listTiRe, listTempPt, 'r', label='Pt1000')          
-                    plt.ylabel("Temperatur Pt1000 in °C",fontsize=12)
-                    plt.legend(loc='best') 
+                    ax1End = plt.subplot(221)
+                    sensor = config['Strings']['Regelsensor']# Erzeugt ersten Teilgraph
+                    line1End, = ax1End.plot(listTiRe, listTempPt, 'r', label=sensor)
+                    line11End, = ax1End.plot(listTiRe, listSollwert, 'b', label='Sollwert')
+                    plt.ylabel("Temperatur in °C",fontsize=12)
+                    plt.legend(loc='best')
                     plt.grid()
                     # Zusatz Linie - Abhängig von Heizer Wahl
-                    ax2End = plt.subplot(223)                                                          # erzeugt zweiten Teilgraph         
-                    plt.xlabel("Zeit in s",fontsize=12)                                                # Haben gemeinsame x-Achse
+                    ax2End = plt.subplot(223)                                                          # erzeugt zweiten Teilgraph
+                    plt.xlabel("Zeit in min",fontsize=12)                                                # Haben gemeinsame x-Achse
                     if heizer_wahl == 'IKA':
                         label_zusatz = 'Heizplatten Temperatur'
                         plt.ylabel("Temperatur Heizplatte in °C",fontsize=12)
                     if heizer_wahl == 'Eurotherm':
                         label_zusatz = 'Ausgangsleistung'
                         plt.ylabel("Ausgangsleistung Eurotherm in %",fontsize=12)
-                    line2End, = ax2End.plot(listTiRe, listZusatz, 'b', label=label_zusatz) 
+                    line2End, = ax2End.plot(listTiRe, listZusatz, 'b', label=label_zusatz)
                     plt.legend(loc='best')
                     plt.grid()
                     # Linie Pyrometer
-                    ax3End = plt.subplot(222)                                                   
+                    ax3End = plt.subplot(222)
                     for name, Pyro in pyroLW.items():
                         Pyro.grafik_T(ax3End, listTiRe)
                     for name, Pyro in pyroKW.items():
                         Pyro.grafik_T(ax3End, listTiRe)
                     for name, pt in pt_sam.items():
-                        pt.grafik(ax3End, listTiRe)        
+                        pt.grafik(ax3End, listTiRe)
                     plt.ylabel("Temperatur in °C",fontsize=12)
                     plt.legend(loc='best')                                                                  # erzeugt eine Legende am möglichst passendenden Ortes (passt sich automatisch an!)
                     plt.grid()
@@ -597,58 +601,58 @@ def get_Measurment():                                                     # Aufn
                     for name, Pyro in pyroLW.items():
                         Pyro.grafik_E(ax4End, listTiRe)
                     for name, Pyro in pyroKW.items():
-                        Pyro.grafik_E(ax4End, listTiRe)   
+                        Pyro.grafik_E(ax4End, listTiRe)
                     plt.ylabel("Emissionsgrad in %",fontsize=12)
-                    plt.xlabel("Zeit in s",fontsize=12) 
+                    plt.xlabel("Zeit in min",fontsize=12)
                     plt.legend(loc='best')                                                                  # erzeugt eine Legende am möglichst passendenden Ortes (passt sich automatisch an!)
                     plt.grid()
                     plt.show()
                     NameDia = FileOutName.split('.')[0] + '_Bild_Rezept_End.png'        # das .txt wird vom Datennamen abgeschnitten und dann mit einem Bild-Datei-Ende versehen
                     figureEnd.savefig(Folder + '/' + NameDia)                           # speichert den Graf im Verzeichnis!
-                    print ('Output data: ', NameDia)   
+                    print ('Output data: ', NameDia)
                 quit()                                                                  # ... beendet Programm!
             loop += 1                                                                   # Nächster Zyklus kann starten
             obj_heizer.change_SollTemp(TempTrep[loop])                                  # Änderung der Solltemperatur
-            if args.log == True:   logging.info('Nächster Zyklus')      
-                    
+            if args.log == True:   logging.info('Nächster Zyklus')
+
     if not Stop_Graph:    # Wenn True soll keine Grafik erzeugt werden oder wenn der Knopf "Graph I/O" auf True steht, soll es nicht ausgeführt werden
         # Update des Diagrammes:
         if nStart == True:
             # Autoscaling:
             AutoScroll(ax1, AutoStop_Pt, xVonPt, xBestPt, yVonPt, yBestPt, 2, 2)            # Regelsensor
             AutoScroll(ax2, AutoStop_Hp, xVonHp, xBestHp, yVonHp, yBestHp, 10, 20)          # Zusatz Graph - Heizerwahl Extra Wert (Leisttung oder Temperatur)
-            AutoScroll(ax3, AutoStop_Py, xVonPy, xBestPy, yVonPy, yBestPy, 1, 5)            # Pyrometer + Adafruit        
+            AutoScroll(ax3, AutoStop_Py, xVonPy, xBestPy, yVonPy, yBestPy, 1, 5)            # Pyrometer + Adafruit
             AutoScroll(ax4, False, 0, 101, 0, 1000, 1, 1)                                   # Emissionsgrad (AutoScroll aus nicht vorhanden - die 6 Werte nach False sind dadurch egal)
-                
+
             # Grafiken - Heizer
             Update_Graph(line1, listTempPt)                 # Regelsensor (IStwert)
             Update_Graph(line2, listZusatz)                 # Extra (Temperatur oder Leistung)
             Update_Graph(line3, listSollwert)               # Sollwert
-       
+
             # Grafik Temperatur Pyrometer, Adafruit (Pt100)
             for name, Pyro in pyroKW.items():
-                Pyro.update_T(listTiRe)                                
+                Pyro.update_T(listTiRe)
             for name, Pyro in pyroLW.items():
                 Pyro.update_T(listTiRe)
             for name, pt in pt_sam.items():
                 pt.update(listTiRe)
-    
+
             # Grafik Emissionsgrad:
             for name, Pyro in pyroKW.items():
-                Pyro.update_E(listTiRe)                                
+                Pyro.update_E(listTiRe)
             for name, Pyro in pyroLW.items():
                 Pyro.update_E(listTiRe)
-        
+
             if args.log == True:   logging.info('Draw figure!')       # Aktualisiere die Grafik
-            figure.canvas.draw()            
+            figure.canvas.draw()
             figure.canvas.flush_events()
             if args.log == True:   logging.info('Diagramme werden geupdatet')
-        
+
 ######################################################################################################################
 def Update_Graph(Kurve, Update_Y):                                                                                   # Funktion für das Updaten der Kurven
 ######################################################################################################################
     updated = Update_Y
-    Kurve.set_xdata(listTiRe)               
+    Kurve.set_xdata(listTiRe)
     Kurve.set_ydata(updated)
 
 ######################################################################################################################
@@ -666,14 +670,14 @@ def AutoScroll(Graph, AutoStop, xVon, xEnde, yVon, yEnde, minusY, plusY):       
 
 ######################################################################################################################
 def Emissions_Anpassung(Temp_Pyro, Temp_Oberf, e_Alt, e_Drauf, o_Grenze, u_Grenze):                                  # Funktion für das Emissionsgrad bestimmen
-###################################################################################################################### 
+######################################################################################################################
     if Temp_Pyro != Temp_Oberf:                               # Wenn die Werte gleich sind, soll der Emissionsgrad bleiben wir er ist
-        e_Drauf = e_Drauf/2                                     # Bei Ungleichheit wird e_Drauf halbiert 
+        e_Drauf = e_Drauf/2                                     # Bei Ungleichheit wird e_Drauf halbiert
     if Temp_Oberf > Temp_Pyro:                                # Wenn die Oberflächentempratur größer als die des Pyrometrs ist, so ...
         e_Alt = round(e_Alt - e_Drauf,1)                        # ... wird der Emissionsgrad kleiner
         if e_Alt < u_Grenze:                                    # Bei Grenzunterschreitung wird der Emissionsgrad auf der Untergrenze gehalten
             e_Alt = u_Grenze
-            e_Drauf = e_Drauf * 2                   
+            e_Drauf = e_Drauf * 2
     if Temp_Oberf < Temp_Pyro:                                # Wenn Pyrometer Temperatur größer ist als die der Oberfläche, dann ...
         e_Alt = round(e_Alt + e_Drauf,1)                        # ... wird der Emissionsgrad größer
         if e_Alt > o_Grenze:                                    # Bei Grenzüberschreitung wird der Emissionsgrad auf der Obergrenze gehalten
@@ -691,30 +695,30 @@ def Emis_Update():
         # auch im Letzten Durchgang bevor das Programm beendet wird!
         for name, Pyro in pyroKW.items():
             Pyro.update_list_E()
-            if args.log == True:   logging.info(f'Messwert Emissionsgrad Pyrometer {name} = {Pyro.listE[-1]}')                              
+            if args.log == True:   logging.info(f'Messwert Emissionsgrad Pyrometer {name} = {Pyro.listE[-1]}')
             if args.log == True:   logging.info(f'Listen Länge von Emis.Liste für {name} = {len(Pyro.listE)}')
         for name, Pyro in pyroLW.items():
-            Pyro.update_list_E() 
-            if args.log == True:   logging.info(f'Messwert Emissionsgrad Pyrometer {name} = {Pyro.listE[-1]}') 
+            Pyro.update_list_E()
+            if args.log == True:   logging.info(f'Messwert Emissionsgrad Pyrometer {name} = {Pyro.listE[-1]}')
             if args.log == True:   logging.info(f'Listen Länge von Emis.Liste für {name} = {len(Pyro.listE)}')
-        if args.log == True:   logging.info('Messwerte in Listen für Emissionsgrad geschrieben')  
+        if args.log == True:   logging.info('Messwerte in Listen für Emissionsgrad geschrieben')
 
-###########################################################################  
-def save():                                                               # Funktion zum Zwischen Speichern der Bilder             
-###########################################################################  
+###########################################################################
+def save():                                                               # Funktion zum Zwischen Speichern der Bilder
+###########################################################################
     if args.log == True:   logging.info('Save-Button betätigt')
-    if nStart == True:                                                      # Soll nur nach dem Start funkionieren 
+    if nStart == True:                                                      # Soll nur nach dem Start funkionieren
         # Bildnamen erzeugen (wie Filenamen) aus dem Filenamen
         SaveOutIndex = str(1).zfill(2)
         SNameHP = ''
         SNameHP = FileOutName.split('.')[0] + '_Bild_#' + SaveOutIndex + '.png'
-                    
+
         j = 1
         while os.path.exists(Folder + '/' + SNameHP) :
             j = j + 1
             SaveOutIndex = str(j).zfill(2)
             SNameHP = FileOutName.split('.')[0] + '_Bild_#' + SaveOutIndex + '.png'
-        print ('Output data: ', SNameHP)             
+        print ('Output data: ', SNameHP)
         figure.savefig(Folder + '/' + SNameHP)                              # speichert den Graf im Arbeitsverzeichnis!
         if args.log == True:   logging.info('Diagramm gespeichert')
 
@@ -724,15 +728,15 @@ def Start():                                                              # Befe
     global time_start, nStart
     global figure, ax1, ax2, ax3, ax4, line1, line2, line3
     global listTiRe, listTempPt, listZusatz, listSollwert
-    
+
     if nStart == False:                                         # Soll verhindern das eine neue Grafik bei mehreren Drücken von Start aufgeht! - Verriegellung bis das Programm beendet wird
         # File erzeugen:
         Init_File()
-        
+
         # Variablen:
         time_start = datetime.datetime.now()
         nStart = True
-        
+
         # Listen:
         listTiRe = []       # x-Wert der Grafik (Zeit)
         listTempPt = []     # PT1000 oder Pt100 der am Heizer/Heizerregler angeschlossen ist
@@ -743,40 +747,40 @@ def Start():                                                              # Befe
         heizer_wahl = config['Heizer']['Auswahl']['String']
         if heizer_wahl == 'IKA':
             obj_heizer.start_heizung()                                                             # Start für die Heizplatte
-            if args.log == True:   logging.info('Heizung Ein') 
-        
+            if args.log == True:   logging.info('Heizung Ein')
+
         # Ersten Sollwert setzen:
         obj_heizer.change_SollTemp(TempTrep[0])
-        if args.log == True:   logging.info('Sollwert Zyklus 1 übergeben!') 
-        
+        if args.log == True:   logging.info('Sollwert Zyklus 1 übergeben!')
+
         # Grafik Erzeugung:
         plt.ion()
         figure = plt.figure(figsize=(12,9))                                                 # Fenster Größe des Diagrammes festlegen
         figure.suptitle("Temperatur + Emissionsgrad Messungen",fontsize=25)                 # Erzeugt eine Gesamt Überschrifft des Graphen
-            
+
         # Regelsensor und Sollwert:
         sensor = config['Strings']['Regelsensor']
         ax1 = plt.subplot(221)                                                              # Erzeugt ersten Teilgraph
-        line1, = ax1.plot(listTiRe, listTempPt, 'r', label=sensor)  
-        line3, = ax1.plot(listTiRe, listSollwert, 'b', label='Sollwert')                                                          
+        line1, = ax1.plot(listTiRe, listTempPt, 'r', label=sensor)
+        line3, = ax1.plot(listTiRe, listSollwert, 'b', label='Sollwert')
         plt.ylabel("Temperatur in °C",fontsize=12)
-        plt.legend(loc='best') 
+        plt.legend(loc='best')
         plt.grid()
-        if args.log == True:   logging.info('Diagramm Ist- und Sollwert erstellt') 
-            
+        if args.log == True:   logging.info('Diagramm Ist- und Sollwert erstellt')
+
         # Linie Zusatz (Temperatur oder Lesitung):
-        ax2 = plt.subplot(223)                                                              # erzeugt zweiten Teilgraph         
+        ax2 = plt.subplot(223)                                                              # erzeugt zweiten Teilgraph
         if heizer_wahl == 'IKA':
             label_zusatz = 'Heizplatten Temperatur'
             plt.ylabel("Temperatur Heizplatte in °C",fontsize=12)
         if heizer_wahl == 'Eurotherm':
             label_zusatz = 'Ausgangsleistung'
             plt.ylabel("Ausgangsleistung Eurotherm in %",fontsize=12)
-        line2, = ax2.plot(listTiRe, listZusatz, 'b', label=label_zusatz) 
+        line2, = ax2.plot(listTiRe, listZusatz, 'b', label=label_zusatz)
         plt.xlabel("Zeit in min",fontsize=12)                                               # Haben gemeinsame x-Achse
-        plt.legend(loc='best') 
-        plt.grid()                                         
-        if args.log == True:   logging.info('Diagramm Zusatz Kurve Heizer erstellt') 
+        plt.legend(loc='best')
+        plt.grid()
+        if args.log == True:   logging.info('Diagramm Zusatz Kurve Heizer erstellt')
 
         # Linien Temperatur Pyrometer und Pt100
         ax3 = plt.subplot(222)
@@ -785,28 +789,28 @@ def Start():                                                              # Befe
         for name, Pyro in pyroKW.items():
             Pyro.grafik_T(ax3, listTiRe)
         for name, pt in pt_sam.items():
-            pt.grafik(ax3, listTiRe)          
+            pt.grafik(ax3, listTiRe)
         plt.ylabel("Temperatur in °C",fontsize=12)
         plt.legend(loc='best')                                                          # erzeugt eine Legende am möglichst passendenden Ortes (passt sich automatisch an!)
         plt.grid()
-        if args.log == True:   logging.info('Diagramm Pyrometer & Pt100-Adafruit erstellt') 
+        if args.log == True:   logging.info('Diagramm Pyrometer & Pt100-Adafruit erstellt')
 
         # Linien Emissionsgrad:
         ax4 = plt.subplot(224)
         for name, Pyro in pyroLW.items():
             Pyro.grafik_E(ax4, listTiRe)
         for name, Pyro in pyroKW.items():
-            Pyro.grafik_E(ax4, listTiRe) 
+            Pyro.grafik_E(ax4, listTiRe)
         plt.ylabel("Emissionsgrad in %",fontsize=12)
-        plt.xlabel("Zeit in min",fontsize=12) 
+        plt.xlabel("Zeit in min",fontsize=12)
         plt.legend(loc='best')                                                          # erzeugt eine Legende am möglichst passendenden Ortes (passt sich automatisch an!)
         plt.grid()
 
 ###########################################################################
 def Stop():                                                               # Befehl zum Stoppen der Heizplatte und zum Schließen und Speichern des Bildes/Graphes/Diagrammes
-########################################################################### 
+###########################################################################
     # Abschluss Nachricht für *Emis.txt bei Betätigung von Beenden
-    if nStart == True and end == False:                                                                  
+    if nStart == True and end == False:
         with open(Folder + '/' + FileOutNameE,"a", encoding="utf-8") as foE:
             time_of_End = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             foE.write(f'- - - Vorseitig Beenden gedrückt - {time_of_End} - - -\n')
@@ -815,13 +819,20 @@ def Stop():                                                               # Befe
     heizer_wahl = config['Heizer']['Auswahl']['String']
     if heizer_wahl == 'IKA':
         obj_heizer.stop_heizung()            # Stopp für die Heizplatte
-        if args.log == True:   logging.info('Heizung Aus') 
-    
+        if args.log == True:   logging.info('Heizung Aus')
+
+    # Leistungsausgang auf Null setzten bzw. Heizer abkühlen lassen:
+    if heizer_wahl == 'Eurotherm':
+        obj_heizer.change_SollTemp("20")
+        end_OP = obj_heizer.get_power_OUT()
+        if args.log == True:   logging.info(f'Heizer auf 20 °C gesetzt! OP = {end_OP}')
+
     # Grafik Speichern und schließen:
     if nStart == True:
         BNameHP = FileOutName.split('.')[0] + '_Bild.png'          # das .txt wird vom Datennamen abgeschnitten und dann mit einem Bild-Datei-Ende versehen
         figure.savefig(Folder + '/' + BNameHP)                     # speichert den Graf im Verzeichnis!
-        print ('Output data: ', BNameHP)          
+        print ('Output data: ', BNameHP)
+
 
 #################################################################################
 # Hauptprogramm:
@@ -831,11 +842,11 @@ Stop_Graph = False
 end = False
 
 # Initialisiere die Koordinatenvariablen:
-xVonPt = xBestPt=  yVonPt = yBestPt = xVonHp = xBestHp = yVonHp = yBestHp = xVonPy = xBestPy = yVonPy = yBestPy = 0 
+xVonPt = xBestPt=  yVonPt = yBestPt = xVonHp = xBestHp = yVonHp = yBestHp = xVonPy = xBestPy = yVonPy = yBestPy = 0
 
 # Parameterliste einlesen:
-config_file = 'config_Parameter.yml'  
-with open(config_file) as fi:   
+config_file = 'config_Parameter.yml'
+with open(config_file) as fi:
     config = yaml.safe_load(fi)
 
 # Extra Konsolen Parameter:
@@ -858,13 +869,16 @@ adafruit.truth_pt100(args.test, args.debug)
 delay_heiz = config['Delay']['Heizer']
 heizer.serial_delay(delay_heiz)
 
-# Kontrolle ob es eine Emulation gibt:
-emulation = config['Emulation']
-heizer.emulation_on(**emulation)
-
 # Log-datei erstellen:
 if args.log:
     logging.basicConfig(filename='Logging.log', filemode='w', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S')
+pyrometer.logging_on(args.log) # Muss außerhalb von If stehen, damit auch False übergeben wird!
+heizer.logging_on(args.log)
+adafruit.logging_on(args.log)
+
+# Kontrolle ob es eine Emulation gibt:
+emulation = config['Emulation']
+heizer.emulation_on(**emulation)
 
 # Abtastrate festlegen:
 if args.dt:
@@ -901,7 +915,7 @@ if 'Pyrometer_LW' in config:
     schnittstelle_LW = pyrometer.Array(**array_data)
     for name, data in config['Pyrometer_LW']['Geraete'].items():
         pyLW = pyrometer.PyrometerLW(name, schnittstelle=schnittstelle_LW.ser_py, **data)
-        pyroLW.update({name: pyLW})        
+        pyroLW.update({name: pyLW})
         pyLW.anpassung(100,100)
         nb_head = pyLW.Get_nb_of_head()
     print(f'Es gibt {nb_head} langwellige Pyrometer!\n')
@@ -918,7 +932,7 @@ if 'Pt100' in config:
 nEMess = 0
 
 # Konsolen Eingabe - Rezept - welcher Ablauf soll durchgeführt werden:
-StartConfig = False                                                             
+StartConfig = False
 loop = 0
 nextTempIn = ''
 TempTrep = []
@@ -938,7 +952,7 @@ print(f'Sollwerte         = {TempTrep}')
 print(f'Sollwertbereich   = {TempArea}')
 print(f'Zeiten im Bereich = {TempTime}')
 print()
-if args.log == True:   logging.info('Rezept Eingelesen') 
+if args.log == True:   logging.info('Rezept Eingelesen')
 
-# GUI öffnen: 
+# GUI öffnen:
 fenster_GUI()

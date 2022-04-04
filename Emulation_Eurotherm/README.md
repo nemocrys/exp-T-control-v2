@@ -2,7 +2,7 @@
 
 ## 1. Allgemeines
 
-In dem Teil soll ein Eurotherm Gerät nachgestellt werden. Das Gerät wird mit einem Arduino Mega ersetzt. Über ein Adafruit Modul wird ein Pt100 ausgelesen (wie bei dem Programm für die Emisionsgradbestimmung und Raspberry Pi). Diese Maßnahme ist notwendig, weil die drei bisher genutzten Eurotherm Geräte (902P, 2x 905S) immer Macken aufweisen oder die richtigen Einstellungen nicht gefunden wurden.  
+In dem Teil soll ein Eurotherm Gerät nachgestellt werden. Das Gerät wird mit einem Arduino Mega ersetzt. Über ein Adafruit Modul wird ein Pt100 ausgelesen (wie bei dem Programm für die Emisionsgradbestimmung und Raspberry Pi). Diese Maßnahme ist notwendig, weil die drei bisher genutzten Eurotherm Geräte (902P, 2x 905S) immer Fehler aufwiesen oder die richtigen Einstellungen nicht gefunden wurden.  
 
 1. Schnittstelle nicht funktioniert
 2. Temperaturanzeige nicht richtig
@@ -10,7 +10,7 @@ In dem Teil soll ein Eurotherm Gerät nachgestellt werden. Das Gerät wird mit e
 
 Aus den Gründen wird nun mit Arudino und C++ eine Nachbildung gebaut die dann das Gerät ersetzt, aber mit dem Programm **hauptprogramm.py** (im anderen Ordner zu finden) arbeitet.
 
-Den größten Teil der Emulation wurde mir vom IKZ bereitgestellt. Dies wurde von Dr. Kaspars Dadzis geschrieben bzw. bereitgestellt.
+Den größten Teil der Emulation wurde mir vom IKZ bereitgestellt. Dies wurde von Dr. Kaspars Dadzis geschrieben bzw. bereitgestellt (Quellen in Kapitel 2).
 
 Folgende Dateien wurden bereitgestellt:    
 1. Adafruit_MAX31865.cpp    
@@ -21,25 +21,29 @@ Folgende Dateien wurden bereitgestellt:
 6. TimerOne.h
 7. known_16bit_timers.h
 8. arduino_test_eurotherm.ino
+9. MCP4725.cpp
+10. MCP4725.h
 
 Meine Aufgabe ist es in der **Datei 8** die Befehle der Bibliothek **heizer.py** einzuarbeiten. Dadurch soll der Arduino ähnlich wie der Eurotherm arbeiten.  
 
 Das von mir hinzugefügte in der Datei "arduino_test_eurotherm.ino" wird mit folgenden Strings gekennzeichnet:
 // - Vincent Funke - 1.2.22 - Beginn & // - Vincent Funke - 1.2.22 - End
 
+Im Ordner **arduino_test_eurotherm_testpid.ino** gibt es eine Verbesserung bzw. Erweiterung des **arduino_test_eurotherm.ino** Ordners. Die neue Variante ist die für die Messungen genutzte Variante. Es sind Erweiterungen zur Softwaresicherheit eingefügt worden und eine bessere Zusammenarbeit mit Eurotherm.
+
 ## 2. Quellen
-  
+Die folgenden Internetseiten zeigen Foren und Dokumentationen zu den verschiedenen Befehlen. Im besonderen die Arbeit mit Strings in Arduino wird gezeigt. Des Weiteren sollen die Seiten eine Hilfestellung sein für die Programmierung. 
+
 1. https://myhomethings.eu/en/arduino-string-objects/ 
     - Bearbeitung von Strings in Arduino
 2. https://www.youtube.com/watch?v=X5u2qCzcPn8 
     - Arbeiten mit Strings 
-    - Auch für das Dokument genutzt: **Gruppenarbeit_Bau_einer_Linearverfahreinheit_Gruppe-4.pdf**
 3. https://www.arduino.cc/reference/de/language/structure/bitwise-operators/bitwisexor/ 
     - XOR Nutzung
 4. https://www.delftstack.com/de/howto/arduino/arduino-convert-float-to-string/
     - Umwandlung von Float in String
 5. https://www.heise.de/make/artikel/Arduino-Bibliotheken-einbinden-und-verwalten-3643786.html
-    - Wie man Bibliotheken umgeht!
+    - Wie man mit Bibliotheken umgeht!
 6. https://www.arduino.cc/reference/de/language/variables/data-types/stringobject/ 
     - String Funktionen 
     - c_str() für Serielles Schreiben
@@ -58,6 +62,15 @@ Das von mir hinzugefügte in der Datei "arduino_test_eurotherm.ino" wird mit fol
     - ASCII Tabelle
 14. https://www.arduino.cc/reference/de/language/structure/boolean-operators/logicalor/
     - Logisches Oder richtig benutzen 
+
+Die gestellten Programme stammen aus:
+
+<pre>
+PID_v2              - https://github.com/br3ttb/Arduino-PID-Library/ 
+Adafruit_MAX31865   - https://github.com/adafruit/Adafruit_MAX31865
+TimerOne            - https://github.com/PaulStoffregen/TimerOne
+MCP4725             - https://github.com/RobTillaart/MCP4725
+</pre>
 
 ## 3. Meine Programm Zeilen erklärt
 In der Datei "arduino_test_eurotherm.ino" habe ich Erweiterungen des existierenden Codes getätigt. Wie oben beschrieben ist dieser auch kennzeichnet. 
@@ -96,7 +109,7 @@ Für die Bearbeitung des Befehls sind verschiedene Boolesche variablen zuständi
     In jedem Loop nach switch case werden bestimmte Strings verglichen. So wird z.B. wenn der String "0033" (Adresse - UID UID GID GID - nur Adresse 3 hier vorhanden) gefunden wird **eingabe** geleert. wenn z.B. der code "PV" gefunden wird, so wird die Variable **code** "PV" erhalten und **eingabe** geleert. Zum Schluss steht nur noch der Wert eines Schreibbefehls in der Variable **eingabe**, da alle Steuerzeichen ignoriert und alle nachfolgenden Zeichen nicht mehr kontrolliert werden. 
 
     Zusätzlich wurden bei ETX und ENQ sowie nach der Eurotherm Funktion, LEDs eingearbeitet. Somit wird die LED je Befehl zwei mal blinken.            
-     
+
 2. **Antwort erstellen:**    
 Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm Funktion erhält aus dem Loop den Code (Mnemonic-Befehl), den Wert (nur schreiben) und ob Lesen oder Schreiben aktiv ist. 
 
@@ -104,12 +117,12 @@ Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm
     Beim Lesen werden bestimmte Variablen wie Sollwert, PID-Parameter und Isttemperatur von dem Regelsensor ausgelesen.     
     Beim Schreiben wird der Wert von einem String in einen Float oder Integer umgewandelt und der Variable übergeben. 
 
-    Bei dem Lesebefehlen muss man nun den BCC Wert beachten, da diese von dem Hauptprogramm bzw. heizer.py (Emissivitätsprogram) kontrolliert wird. Dazu wird bei jedem Lesebefehl die Funktion BCC ausgelöst. Diese Funktion berechnet einen Charakter aus ASCII Zeichen. Diese    Berechnung erfolgt mit dem XOR was in der Programmierung durch das "^" gekennzeichnet wird. In der Funktion wird zunächst die Länge von Code und Wert bestimmt, weil diese unterschiedlich lang sind. daraufhin wird in einer For-Schleife jedes Zeichen als Zeichen (Charakter) ausgelesen und in den BCC berechnet. Zum Schluss wird eine 3 hinzugerechnet, welche das ETX kennzeichnet. Weiteres kann man im Readme des anderen Programmes (Emissivität) nachlesen.  
+    Bei dem Lesebefehlen muss man nun den BCC Wert beachten, da diese von dem Hauptprogramm bzw. heizer.py (Emissivitätsprogram) kontrolliert wird. Dazu wird bei jedem Lesebefehl die Funktion BCC ausgelöst. Diese Funktion berechnet einen Charakter aus ASCII Zeichen. Diese    Berechnung erfolgt mit dem XOR was in der Programmierung durch das "^" gekennzeichnet wird. In der Funktion wird zunächst die Länge von Code und Wert bestimmt, weil diese unterschiedlich lang sind. daraufhin wird in einer For-Schleife jedes Zeichen als Zeichen (Charakter) ausgelesen und in den BCC berechnet. Zum Schluss wird eine 3 hinzugerechnet, welche das ETX kennzeichnet. Weiteres kann man im Readme des anderen Programmes (Emissivität) nachlesen. 
 
 3. **Einsparrungen:**
     - Die Antwort für das schreiben ist immer ACK!
     - Der BCC vom eingehenden Befehl wird ignoriert.
-    - II, EE, V0, 11H, 11L, HS, LS - geben Feste Werte zurück
+    - II, EE, V0 - geben Feste Werte zurück
     - EE sagt immer das es keine Fehler gibt
 
 4. **Test-Funktionen:**
@@ -127,8 +140,6 @@ Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm
 
         Die Schnittstelle kann man mit Serial1 oder Serial2 (je nach Pin-Belegung von TX und RX) aufgerufen. Durch diese Erweiterung kann man das Programm debugen, indem man die Variablen auf diese Schnittstelle ausgeben lässt. Würde man mit nur Serial arbeiten, würde man sich Dinge in seine Antworten schreiben.
 
-        <img src="Bilder/Putty.png" alt="Zusatz Extra Schnittstelle" title="Zweite Schnittstelle Ausgabe"/> 
-
         Im Putty werden verschiedene Sachen ausgegeben. Auf dem Bild kann man ein Beispiel sehen, die Ausgaben sind aber noch mehr geworden und werden im folgenden Kurz aufgezählt.
 
         - Eingelesene Zeichen (siehe Bild)   
@@ -137,8 +148,20 @@ Die Antwort eines Befehls wird in der Eurotherm Funktion erstellt. Die Eurotherm
         - Ausgangsleistung (siehe Bild)
         - Maximale Ausgangsleistung
         - Variablen: PIDOutputDACvolts, PIDOutputDACbits, PIDOutputDACvoltsCheck & DDPIDLimitMaxDAC
+        - PID-Parameter (Variante 2))
+        - Adafruit Fehler (Variante 2) 
+
+        **Bilder:**   
+        <img src="Bilder/Putty.png" alt="Zusatz Extra Schnittstelle" title="Zweite Schnittstelle Ausgabe"/>     
+        <img src="Bilder/Putty_1.png" alt="Zusatz Extra Schnittstelle" title="Zweite Schnittstelle Ausgabe"/> 
+
 
 5. **Variante 3:**   
 In Variante 3 wird "myPID.SetMode(AUTOMATIC)" auf MANUAL umgestellt. Der Arduino bekommt nun vom Eurotherm Gerät den Wert vom Mnemonic Befehl "OP" und rechnet ihn um bevor er diesen in die Variable "PIDOutput" setzt.    
 Dieser Befehl wird nur aufgerufen wenn im hauptprogramm.py der gegebene Wert aus der Parameterliste gefunden wird und auch auf True steht, sonst wird der Teil einfach übersprungen. In heizer.py wird alles dann dazu bearbeitet, immer wenn OP aus dem Eurotherm gelesen wird, wird kurz darauf zum Arduino gesendet und bearbeitet. Diese Bearbeitung ist dann auch in Serial2 sichtbar.  
+
+6. **Ablaufplan:**    
+<img src="Bilder/Arduino_ino_Ablauf" alt="Ablauf" title="Ablauf meines Teil-Programms" width=500/>     
+Das Bild zeigt den Ablaufplan des Programms das oben beschrieben wurde. In dem Ablaufplan werden nur die Loop Funktion (Switch-case, LED und Funktionsaufruf) und die Funktionen "BCC" und "Eurotherm" erläutert. Der restliche Code wurde vom IKZ gegeben und passiert auf GitHub Bibliotheken.       
+Sollte das Bild hier nicht angezeigt werden es liegt im Ordner Bilder!
 

@@ -232,7 +232,7 @@ void PID::SetControllerDirection(int Direction)
 double PID::GetKp(){ return  dispKp; }
 double PID::GetKi(){ return  dispKi;}
 double PID::GetKd(){ return  dispKd;}
-int PID::GetMode(){ return  inAuto ? AUTOMATIC : MANUAL;}
+int PID::GetMode(){ return  inAuto ? AUTOMATIC : MANUAL;}     // Abfrage (Bedingung, Variable) ? Wenn True gebe das zurück : else (gebe das andere zurück)
 int PID::GetDirection(){ return controllerDirection;}
 double PID::GetOutputP(){ return  outputp; }
 double PID::GetOutputI(){ return  outputi; }

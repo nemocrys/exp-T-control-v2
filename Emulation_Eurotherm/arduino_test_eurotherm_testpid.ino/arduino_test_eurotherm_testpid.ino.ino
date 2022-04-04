@@ -215,7 +215,10 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
   {
     if (befehl == "PV")
     {
-      float val = PIDInput;
+      float val;
+      int mode = myPID.GetMode();                      // Abfrage des Modes 0 - MANUAL, Non-Zero - AUTOMATIC
+      if (mode == 0) {val = MAX31865_get();}    // Wenn Manual lese den Wert da aus, Notwendig für Sprungantwort Bestimmung 
+      else{val = PIDInput;}                     // Wenn Automatic filtere die Werte des Adafruit Moduls (Emulation)
       String ans = String(val, 1);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
@@ -290,7 +293,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
     if (befehl == "XP")
     {
       float kp = myPID.GetKp();
-      String ans = String(kp, 1);
+      String ans = String(kp, 4);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
       antwort = "XP" + ans + ETX + bcc;
@@ -300,7 +303,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
     if (befehl == "TI")
     {
       float ki = myPID.GetKi();
-      String ans = String(ki, 1);
+      String ans = String(ki, 4);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
       antwort = "TI" + ans + ETX + bcc;
@@ -310,7 +313,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
     if (befehl == "TD")
     {
       float kd = myPID.GetKd();
-      String ans = String(kd, 1);
+      String ans = String(kd, 4);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
       antwort = "TD" + ans + ETX + bcc;
@@ -335,7 +338,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       String ans = String(Leistung, 1);
       char bcc = BCC(befehl, ans);
       Serial.write(STX);
-      antwort = "O1" + ans + ETX + bcc;
+      antwort = "OP" + ans + ETX + bcc;
       Serial.print(antwort);
     } // if OP
 
@@ -410,6 +413,7 @@ void Eurotherm(String befehl, String value, bool solllesen, bool sollschreiben)
       if (PIDOutput < DDPIDLimitMin) {PIDOutput = DDPIDLimitMin;}
       if (PIDOutput > DDPIDLimitMax) {PIDOutput = DDPIDLimitMax;}
       Serial2.println("Ausgangsleistung = " + String(PIDOutput));
+      Serial.write(ACK);
     }// if OP
     
     if (befehl == "HO")
@@ -453,7 +457,7 @@ void setup() {
 
   myPID.SetOutputLimits(DDPIDLimitMin, DDPIDLimitMax);
   myPID.SetSampleTime(DDPIDSampleRate);
-  myPID.SetMode(AUTOMATIC); //AUTOMATIC or MANUAL
+  myPID.SetMode(AUTOMATIC); //AUTOMATIC or MANUAL            // AUTOMATIC = Arduino, MANUAL = Eurotherm und Arduino 
 
   PIDInput = MAX31865_get();
 
@@ -634,7 +638,7 @@ void loop() {
     PIDInputACT = MAX31865_get();
 
     //skip PID if sensors are out of range
-    if ( PIDInputACT > DDPIDInputMIN || PIDInputACT < DDPIDInputMAX )
+    if ( PIDInputACT >= DDPIDInputMIN && PIDInputACT <= DDPIDInputMAX )
     {
       //filter digitally using a low pass filter
       PIDInputAVR = PIDInputAVRfilt * PIDInputACT + (1 - PIDInputAVRfilt) * PIDInputAVR;

@@ -5,10 +5,11 @@ import adafruit_max31865
 
 import random
 import numpy as np                              
-import matplotlib.pyplot as plt                
+import matplotlib.pyplot as plt    
+import logging            
 
 # Test und Debug Funktion (bzw. Werte) vorbereiten
-global test_on, dbg_on
+global test_on, dbg_on, log
 
 test_on = False
 dbg_on = False
@@ -19,6 +20,10 @@ def truth_pt100(test, dbg):
     test_on = test
     dbg_on = dbg
 
+# Logging auch in Geräte Programm:
+def logging_on(log_status):
+    global log
+    log = log_status
 
 class Adafruit:
     # Dictionaries für die Pin-Belegung am Raspberry Pi
@@ -40,6 +45,7 @@ class Adafruit:
         self.vergleich = Vergleichssensor
 
         self.init_adafruit()
+        if log == True:   logging.info(f'Adafruit {self.name} initialisiert + alles übergeben! - Funktion __init__()') 
 
     def init_adafruit(self):                                    # Gerät Initialisieren            
         if not test_on:
@@ -51,12 +57,14 @@ class Adafruit:
             if dbg_on == True:
                 print(f'Sensor am {self.GPIO} / Widerstand = {self.res} Ohm / Ref. Widerstand = {self.refres}/ {self.wire}-Leiter Verkabelung\n')
                 print(self.sensor)
+            if log == True:   logging.info(f'Adafruit {self.name} initialisiert! - init_adafruit()') 
 
     def get_temperatur(self):                                   # Istwert Temperatur auslesen                                        
         if test_on == False:
             tempA = self.sensor.temperature
             if dbg_on == True:
                 print(f'Reading from {self.sensor}: {tempA} °C') 
+            if log == True:   logging.info(f'get_temperatur() ausgeführt - Adafruit')
         else:
             tempA = random.uniform(15,25)                                  
         return tempA

@@ -1,0 +1,21 @@
+Auflistung der Emissionsgrade:
+Datum: 2022_03_24
+
+Version: v4.0-6-g89f8d29-dirty
+
+Vergleichsgeräte für die Pyrometeranpassung: Pt Oberfläche
+
+Rezept:
+-------
+Solltemperaturen:     ['100', '150', '200']
+Regelbereich:         ['8', '8', '8']
+Zeit im Regelbereich: ['30', '30', '30']
+
+Emissionsrad ist 100 % - wenn keine Anpassung vorgenommen wird!
+
+Soll. Temperatur         Vergleichs-Temperatur              Emiss. Kurzwellig 1 [%]            Emiss. Langwellig AV 20:1 [%]      
+100.0                    94.4                               99.8                               75.8                               
+100.0                    99.7                               100                                75.8                               
+100.0                    98.3                               93.8                               75.8                               
+150.0                    141.4                              100                                77.6                               
+200.0                    182.5                              100                                79.4                               

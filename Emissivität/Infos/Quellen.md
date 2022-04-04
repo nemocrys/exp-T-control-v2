@@ -7,7 +7,8 @@ Für den Eurotherm Regler wurden verschiedene Manuals genutzt. In diesen Kapitel
     - zu finden im Internet:    
         - https://www.eurotherm.com/download/900-epc-benutzer-handbuch-ha150789ger/
         - https://www.eurotherm.com/download/900-epc-benutzer-handbuch-ha150789ger/?ind=0&filename=900EPC-BA-HA150789GER.pdf&wpdmdl=27254&refresh=61e97823233e71642690595  
-    - Sprache: Deutsch    
+	- https://www.eurotherm.com/?wpdmdl=27254     
+- Sprache: Deutsch    
     - **wichtiger Inhalt**:
         - das Manual bezieht sich auf den hier genannten 905S Eurotherm   
         - S. 17 - Anschluss von Thermoelement und Widerstandsthermometer
@@ -78,9 +79,11 @@ Das Dokument bassiert auf folgenden Internetseiten:
 
 <*> Dort steht alles zur Installation und Arbeit mit Python
 
-Die Python Bibliothek ist unter dem Link https://github.com/adafruit/Adafruit_CircuitPython_MAX31865 zu finden. Bei der Installation gab es Probleme, da der Raspberry nicht in der Bibliothek zu finden war. Da das Teil meines Praktikums war, kan man auf der Seite https://github.com/nemocrys/exp-T-control_archive (von mir geschrieben) in Kapitel 5 nachlesen wie das problem behoben wurde. 
+Die Python Bibliothek ist unter dem Link https://github.com/adafruit/Adafruit_CircuitPython_MAX31865 zu finden. Bei der Installation gab es Probleme, da der Raspberry nicht in der Bibliothek zu finden war. Da das Teil meines Praktikums war, kan man auf der Seite https://github.com/nemocrys/exp-T-control (von mir geschrieben) in Kapitel 5 nachlesen wie das problem behoben wurde. 
 
-### 1.2. Programmquellen
+Die Bliotheken board.py und digitalio.py findet man auf der Seite https://github.com/adafruit/Adafruit_Blinka.
+
+### 1.2. Programmquellen (Zu Funktion von Python und Arduino Befehlen)
 1. Wie man mit tkinter arbeitet:
     - https://pythonbuch.com/gui.html 
 2. Erzeugung eines Live-Plotes:
@@ -103,3 +106,5 @@ Die Python Bibliothek ist unter dem Link https://github.com/adafruit/Adafruit_Ci
     - https://www.delftstack.com/de/howto/python/xor-in-python/
 8. Echotest:
     - https://www.arduino.cc/reference/en/language/functions/communication/serial/begin/
+
+Einige Seiten verwiesen auf Foren und Dokumentationen zu den Befehlen. Auf ihnen werden Beispiele für die Nutzung von bestimmten Programmen.

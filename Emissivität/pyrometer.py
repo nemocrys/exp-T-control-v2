@@ -2,10 +2,11 @@
 import serial
 import random
 import numpy as np                              
-import matplotlib.pyplot as plt                 
+import matplotlib.pyplot as plt   
+import logging              
 
 # Test und Debug Funktion (bzw. Werte) vorbereiten
-global test_on, dbg_on
+global test_on, dbg_on, log
 
 test_on = False
 dbg_on = False
@@ -16,6 +17,10 @@ def truth_pyro(test, dbg):
     test_on = test
     dbg_on = dbg
 
+# Logging auch in Geräte Programm:
+def logging_on(log_status):
+    global log
+    log = log_status
 
 class Pyrometer:
     # Temperatur Grafik:
@@ -59,6 +64,7 @@ class Pyrometer:
                 bytesize = int(self.bytesize),            
                 timeout = 0.1)
             self.ser_py = ser_py_
+            if log == True:   logging.info(f'Pyrometer am {portName} initialisiert!') 
         else:                       # Das nochmal ansehen, test läuft derzeitig nicht ohne!!
             self.ser_py = None
 
@@ -66,6 +72,7 @@ class Pyrometer:
     def anpassung(self, e_Aktuell, e_Drauf):
         self.e_py = e_Aktuell
         self.e_Drauf = e_Drauf
+        if log == True:   logging.info('Anpassungs Werte Bearbeitet/erstellt!') 
 
 
 # Die Langwelligen Pyrometer hängen an dem selben Array mit der selben Schnittstelle
@@ -77,6 +84,7 @@ class Array(Pyrometer):
         self.stopbits = stopbits
         self.bytesize = bytesize
         self.init_pyro()
+        if log == True:   logging.info('Pyrometer Array initialisiert!') 
 
 
 class PyrometerKW(Pyrometer):
@@ -95,6 +103,7 @@ class PyrometerKW(Pyrometer):
         
         self.init_pyro()
         self.config_pyro()
+        if log == True:   logging.info(f'Pyrometer KW {self.name} initialisiert, konfiguriert + alles übergeben! - Funktion __init__()') 
         
         
     def config_pyro(self):                                          # Gerät Konfigurieren 
@@ -111,17 +120,20 @@ class PyrometerKW(Pyrometer):
         p = '00na\r'
         self.ser_py.write(p.encode())
         pyro_id = self.ser_py.readline().decode()
+        if log == True:   logging.info('get_ID() durchgeführt - Pyro. KW') 
         return (pyro_id)
 
     def get_focus(self):                                            # Fokus des Messfleckes (Messfleckabstand) erfragen
         p = '00df\r'
         self.ser_py.write(p.encode())                                           
         pyro_focus = self.ser_py.readline().decode()
+        if log == True:   logging.info('get_focus() durchgeführt - Pyro. KW') 
         return (pyro_focus)
 
     def get_OK(self):
         answer = self.ser_py.readline().decode()
         print ('Pyrometer ', self.name, ' = ', answer)
+        if log == True:   logging.info('get_OK() durchgeführt - Pyro. KW') 
         return answer
 
     def write_pyro_para(self, para, str_val):                       # Pyrometer Parameter einstellen
@@ -156,7 +168,8 @@ class PyrometerKW(Pyrometer):
             if para == 't':
                 print ('Pyrometer ', self.name, ' transmission = ', answer)     
             if para == 't90':
-                print ('Pyrometer ', self.name, ' t90 = ', answer)     
+                print ('Pyrometer ', self.name, ' t90 = ', answer)  
+            if log == True:   logging.info(f'Parameter {para} geändert! - Pyro. KW')    
         else:
             print ('Pyro ' + self.name + ' parameter: ', p)
 
@@ -181,12 +194,15 @@ class PyrometerKW(Pyrometer):
                 self.ser_py.write(p.encode())
                 answer = self.ser_py.readline().decode()
                 n += 1
+            if "no" in answer:              # Fehlerbehandlung
+                answer = '0\r'
 
             if para == 'e' or para == 't':                                    # Bei Emissionsgrad und Transmissionsgrad werden so sofort die Werte in einen float umgewandelt
                 answer = answer[:-1]
                 l = len(answer)
                 answer = answer[:l-1] + '.' + answer[l-1:]
                 answer = float(answer)  
+            if log == True:   logging.info(f'Parameter {para} geholt! - Pyro. KW')  
         else:                                                                 
             print ('Pyro ' + self.name + ' parameter: ', p)
             answer = random.uniform(30,40)
@@ -207,12 +223,15 @@ class PyrometerKW(Pyrometer):
                 self.ser_py.write(p.encode())
                 temp = self.ser_py.readline().decode()
                 n += 1
+            if "no" in temp:              # Fehlerbehandlung
+                temp = '0\r'
             
             temp = temp[:-1]                                                  # Abschlusszeichen entfernen
             l = len(temp)
             temp = temp[:l-1] + '.' + temp[l-1:]                              # Zusammensetzung zur Zahl, Punkt (Komma) einfügen (Rückgabe z.B. 00740 = 74,0 bzw 74.0)
             if dbg_on:
                 print ('Reading from ' + self.com + ': ', float(temp))
+            if log == True:   logging.info('Temperatur ausgelesen - Pyro. KW')  
         else:
             temp = random.uniform(20,22)                                      
         return (float(temp)) 
@@ -222,12 +241,15 @@ class PyrometerKW(Pyrometer):
         if not test_on:
             if state:
                 p = '00la1\r'                                               # Laser Ein
+                if log == True:   logging.info('Laser On - Pyro. KW')     
             else:
                 p = '00la0\r'                                               # Laser Aus
+                if log == True:   logging.info('Laser Off - Pyro. KW')  
             if dbg_on:
                 print ('Sending to ' + self.com +': ', p.encode()) 
             self.ser_py.write(p.encode())
-            check = self.get_OK()        
+            check = self.get_OK()
+            if log == True:   logging.info('Laser On/Off durchgeführt - Pyro. KW')          
 
 
 class PyrometerLW(Pyrometer):
@@ -240,6 +262,7 @@ class PyrometerLW(Pyrometer):
         
         self.ser_py = schnittstelle   
         self.config_pyro()
+        if log == True:   logging.info(f'Pyrometer KW {self.name} konfiguriert + alles übergeben! - Funktion __init__()') 
         
     def config_pyro(self):                                              # Gerät Konfigurieren 
         if not test_on:
@@ -250,6 +273,7 @@ class PyrometerLW(Pyrometer):
         p = '00A' + str(self.i) + 'sn\r'
         self.ser_py.write(p.encode())
         pyro_head_id = self.ser_py.readline().decode()
+        if log == True:   logging.info('get_ID() durchgeführt - Pyro. LW')   
         return (pyro_head_id)
 
     def Get_nb_of_head(self):                                           # Anzahl der Sensoren an der Box    
@@ -257,6 +281,7 @@ class PyrometerLW(Pyrometer):
             p = '00oc\r'
             self.ser_py.write(p.encode())
             pyro_head_nb = self.ser_py.readline().decode().replace('\r','')
+            if log == True:   logging.info('Get_nb_of_head() durchgeführt - Pyro. LW')   
             return (pyro_head_nb)
         else:
             return 0
@@ -264,6 +289,7 @@ class PyrometerLW(Pyrometer):
     def get_OK(self):
         answer = self.ser_py.readline().decode()
         print ('Pyrometer Array', str(self.i), ' = ', answer)
+        if log == True:   logging.info('get_OK() durchgeführt - Pyro. LW')   
         return answer
 
     def write_pyro_para(self, para, str_val):                           # Pyrometer Parameter einstellen
@@ -291,7 +317,8 @@ class PyrometerLW(Pyrometer):
             if para == 'e':
                 print ('Pyrometer array head ', str(self.i), ' emission = ', answer)
             if para == 't90':
-                print ('Pyrometer array head ', str(self.i), ' t90 = ', answer)     
+                print ('Pyrometer array head ', str(self.i), ' t90 = ', answer) 
+            if log == True:   logging.info(f'Parameter {para} gesetzt! - Pyro. LW')         
         else:
             print ('Pyrometer array head ' +str(self.i) + ' parameter: ', p)
 
@@ -322,6 +349,7 @@ class PyrometerLW(Pyrometer):
                 l = len(answer)
                 answer = answer[:l-1] + '.' + answer[l-1:]
                 answer = float(answer)  
+            if log == True:   logging.info(f'Parameter {para} geholt! - Pyro. LW') 
         else:                                                                      
             print ('Pyrometer array head ' + str(self.i) + ' parameter: ', p)    
             answer = random.uniform(30,40)
@@ -342,12 +370,15 @@ class PyrometerLW(Pyrometer):
                 self.ser_py.write(p.encode())
                 temp = self.ser_py.readline().decode()
                 n += 1
+            if "no" in temp:              # Fehlerbehandlung
+                temp = '0\r'
             
             temp = temp[:-1]
             l = len(temp)
             temp = temp[:l-1] + '.' + temp[l-1:]
             if dbg_on:
                 print ('Reading from head ' + str(self.i) + ': ', float(temp))
+            if log == True:   logging.info('Temperatur ausgelesen! - Pyro. LW') 
         else:
             temp = random.uniform(20,22)
         return (float(temp))

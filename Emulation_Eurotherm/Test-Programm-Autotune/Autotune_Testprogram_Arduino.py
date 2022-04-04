@@ -1,5 +1,5 @@
 # Selbstoptimierung:
-# Für Eurotherm und Eurotherm-Arduino
+# Für Eurotherm Emulation mit Arduino
 
 import serial
 import time
@@ -7,7 +7,8 @@ import datetime
 from tkinter import *                           
 from tkinter import ttk
 import numpy as np                              
-import matplotlib.pyplot as plt                 
+import matplotlib.pyplot as plt
+import os
       
 # Funktionen:
 def bcc(string):
@@ -65,6 +66,54 @@ def read(read_befehl, schnitt, delay):            # Funktion zum Lesen eines Wer
         return value
     return "Leerer String"
 
+def send(write_befehl, schnitt, delay):   # Funktion um einen Befehl zu senden
+    sEOT = '\x04'
+    sETX = '\x03'
+    sSTX = '\x02'
+    sENQ = '\x05'
+    sACK = '\x06'
+    sNAK = '\x15'   
+    bcc_write = bcc(write_befehl)
+    send = sEOT + str(0) + str(0) + str(3) + str(3) + sSTX + write_befehl + sETX + bcc_write
+    schnitt.write(send.encode())
+    time.sleep(delay)
+        
+    # Als Antwort beim schreiben soll das ACK = \x06 zurückkommen
+    try:
+        answer = schnitt.readline().decode()
+    except:
+        answer = ""
+        print("Decode Fehler beim lesen! - send")
+    if answer == sACK:
+        print('Befehl erfolgreich gesendet!')
+        
+    # Kontrolle ob alles OK (NAK und ein Leerer String sorgen für Wiederholung):
+    n = 0    # Die Schleife soll 10 mal durchgeführt werden 
+    while (answer == sNAK or answer == "") and n <= 4:                                         
+        # Fehler Grund ermitteln:
+        print('Gerät antwortet mit NAK! Wiederhole senden.')
+        # Nach einem NAK soll auch die Ursache des Fehlers geprintet werden
+        schnitt.write((sEOT+ str(0) + str(0) + str(3) + str(3) +'EE'+ sENQ).encode())  
+        time.sleep(delay)
+        answer = schnitt.readline().decode()
+        print(f'EE = {answer[4:-2]}')
+        # Erneute Sendung:
+        schnitt.write(send.encode())
+        time.sleep(delay)
+        try:
+            answer = schnitt.readline().decode()
+        except:
+            answer = ""
+            print("Erneuter Decode Fehler beim lesen! - send")
+        n += 1
+
+    # im folgenden wird geschaut was das EE zurückgibt, eine Null bedeutet das kein Fehler vorliegt
+    schnitt.write((sEOT+ str(0) + str(0) + str(3) + str(3) +'EE'+ sENQ).encode())
+    time.sleep(delay)
+    answer = schnitt.readline().decode()
+    if answer[4:-2] != '0000':
+        print(f'EE = {answer[4:-2]}')
+
 def fenster_GUI():
     # Definitionen der Aktionen der Knöpfe:
     def button_action_1():                  # Start Knopf
@@ -111,33 +160,28 @@ def fenster_GUI():
     fenster.after(10, task) 
     fenster.mainloop()  
 
-def get_Measurment():    
+def get_Measurment():
+    global only_one
+    
     time_actual = datetime.datetime.now()
     dt = (time_actual - time_start).total_seconds()
     
-    eurotemp = read('PV', ser_py, 0.1)
-    euroPow = read('OP', ser_py, 0.1)
-    
+    eurotemp = read('PV', ser_py, 0.5)
+    euroPow = read('OP', ser_py, 0.5)
+
     listTiRe.append(dt)
     listTempPt.append(float(eurotemp))
     listPowEu.append(float(euroPow))
     
-    # Arduino:
-    if Ardu_on == True:
-        sEOT = '\x04'
-        sETX = '\x03'
-        sSTX = '\x02'
-    
-        bcc_write = bcc('OP' + euroPow)
-        send = sEOT + str(0) + str(0) + str(3) + str(3) + sSTX + 'OP' + euroPow + sETX + bcc_write
-        schnitt_emu.write(send.encode())
-        time.sleep(0.5)
-        answer = schnitt_emu.readline().decode()
-        if answer != '\x06':
-            print('Kein ACK gefunden bei Arduino!')
-        arduPow = read('OP', schnitt_emu, 0.5)
-        listPowAr.append(float(arduPow))
-    
+    if dt >= start_OP:
+        if only_one == 0:
+            send('OP' + str(max_OP), ser_py, 0.5)
+            only_one = 1
+    if dt >= end_OP:
+        if only_one == 1:
+            send('OP0', ser_py, 0.5)
+            only_one = 2
+
     # Autoscaling:
     AutoScroll(ax1, 2, 2)            # Temperatur
     AutoScroll(ax2, 2, 2)            # Leistung in %
@@ -145,8 +189,6 @@ def get_Measurment():
     # Grafiken - Heizer
     Update_Graph(line1, listTempPt)                
     Update_Graph(line2, listPowEu)                 
-    #if Ardu_on == True:
-    #    Update_Graph(line3, listPowAr)
         
     figure.canvas.draw()            
     figure.canvas.flush_events()
@@ -166,6 +208,7 @@ def AutoScroll(Graph, minusY, plusY):
 def Start():
     global figure, ax1, ax2, line1, line2, line3, nStart
     global listTiRe, listTempPt, listPowEu, listPowAr, time_start
+    global start_OP, end_OP, max_OP, only_one
     
     if nStart == False:
         time_start = datetime.datetime.now()
@@ -174,13 +217,22 @@ def Start():
         listPowEu = []
         listPowAr = []
         
+        #send('SL20', ser_py, 0.5)
+        start_OP = 120  # in s
+        end_OP =  240   # in s 
+        max_OP = 18     # in %
+        only_one = 0
+        
+        time.sleep(1)
+        send('HO' + str(max_OP), ser_py, 0.5)
+        
         nStart = True
         # Grafik Erzeugung:
         plt.ion()
         figure = plt.figure(figsize=(10,5))                                                 
         figure.suptitle("Selbstoptiemierung Überwachung",fontsize=25)                 
             
-        # Temperatur und Leistung:
+        # Regelsensor:
         ax1 = plt.subplot(121)                                                              
         line1, = ax1.plot(listTiRe, listTempPt, 'r', label='Pt100 Eurotherm')                                                            
         plt.ylabel("Temperatur Kontrollsensor in °C",fontsize=12)
@@ -189,9 +241,7 @@ def Start():
         plt.grid()
         
         ax2 = plt.subplot(122)                                                              
-        line2, = ax2.plot(listTiRe, listTempPt, 'b', label='Output Eurotherm')
-        #if Ardu_on == True:
-        #    line3, = ax2.plot(listTiRe, listTempPt, 'g', label='Output Arduino') 
+        line2, = ax2.plot(listTiRe, listTempPt, 'b', label='Output Arduino')
         plt.ylabel("Ausgangsleistung in %",fontsize=12)
         plt.xlabel("Zeit in s",fontsize=12)
         plt.legend(loc='best') 
@@ -199,21 +249,27 @@ def Start():
             
 def Stop():
     if nStart == True:
-        P = read('XP', ser_py, 0.1)
-        I = read('TI', ser_py, 0.1)
-        D = read('TD', ser_py, 0.1)
-        Cut_Max = read('HB', ser_py, 0.1)
-        Cut_Min = read('LB', ser_py, 0.1)
-        print(f'XP = {P} & TI = {I} & TD = {D}')
-        print(f'Cutback: Max = {Cut_Max} & Min = {Cut_Min}')
+        # Variablen und Listen Initialisierung:
+        actual_date = datetime.datetime.now().strftime('%Y_%m_%d')            # Variablen für den Datei Namen 
+        FileOutPrefix = actual_date
+        FileOutIndex = str(1).zfill(2)
+        FileOutName = ''
+        
+        BName = FileOutPrefix + '_#' + FileOutIndex + '_Bild.png'             
+        j = 1
+        while os.path.exists(BName) :                          
+            j = j + 1                                                               
+            FileOutIndex = str(j).zfill(2)
+            BName = FileOutPrefix + '_#' + FileOutIndex + '_Bild.png'
+        figure.savefig(BName)                     
+        print ('Output data: ', BName)  
         quit()
 
-# Vorab:
-#send('SL50')
+# Hauptteil:
 nStart = False
 
-# Schnittstelle Eurotherm:
-portName = '/dev/ttyUSB1' 
+# Schnittstelle Arduino:
+portName = '/dev/ttyACM0' 
 try:
     serial.Serial(port=portName)
 except serial.SerialException:
@@ -221,28 +277,11 @@ except serial.SerialException:
                                 
 ser_py = serial.Serial(
     port = portName,
-    baudrate = int(9600), # Emulation 19200 (8N1)
-    parity = 'E',
+    baudrate = int(19200), # Emulation 19200 (8N1)
+    parity = 'N',
     stopbits = int(1),
-    bytesize = int(7),
+    bytesize = int(8),
     timeout = 2.0)
-print("Eurothem initialisiert!\n")
-
-# Schnittstelle Arduino/Emulation:
-Ardu_on = True                      # True = Arduino und Eurotherm, False = Nur Eurotherm
-if Ardu_on == True:
-    portNameS = '/dev/ttyACM0'
-    try:
-        serial.Serial(port=portNameS)
-    except serial.SerialException:
-        print ('Port ' + portNameS + ' not present')
-    schnitt_emu = serial.Serial(
-        port = portNameS,
-        baudrate = int(19200),
-        parity = 'N',
-        stopbits = int(1),
-        bytesize = int(8),
-        timeout = 2.0)
-    print("Emulation/Arduino initialisiert!\n")
+print("Arduino initialisiert!\n")
 
 fenster_GUI()

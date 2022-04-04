@@ -12,15 +12,15 @@ Das Programm basiert auf dem erarbeiteten Programm aus meinem Praktikum. So wurd
 ### 1.1. Programme
 
 1. **hauptprogramm.py:**   
-    Im hauptprogramm.py werden die Geräte initialisiert, Grafiken gestartet, Files erzeugt und mit den Messdaten belegt, sowie die Emissionsgradanpassung erzeugt. Zudem werden die Test und Debug Werte an die Gerätebibliotheken gesendet, Eurotherm Heizer bekommt ein Delay und wenn gewollt eine weitere Schnittstelle. Mit dieser Schnittstelle wird ein Arduino als Leistungssteuerung für das Eurotherm initialisiert. Mit dem Arduino Programm in P2 kann man auch den Eurotherm mit dem Arduino ersetzen. 
+    Im hauptprogramm.py werden die Geräte initialisiert, Grafiken gestartet, Files erzeugt und mit den Messdaten belegt, sowie die Emissionsgradanpassung erzeugt. Zudem werden die Test und Debug Werte an die Gerätebibliotheken gesendet, Eurotherm Heizer bekommt ein Delay und wenn gewollt eine weitere Schnittstelle. Mit dieser Schnittstelle wird ein Arduino als Leistungssteuerung für das Eurotherm initialisiert. Mit dem Arduino Programm in  Ordner Emulation_Eurotherm kann man auch den Eurotherm mit dem Arduino ersetzen, Arduino soll als Emulation des Eurotherms dienen. 
 
     *Funktionen:*     
     - **Init_File()**   
     In dieser Funktion werden die drei Files erzeugt und bekommen ihren Kopf.
         - *_temp.txt - Sammlung der Temperaturmesswerte
         - *_Emis.txt - Sammlung der Anpassungsversuche und Abschlüsse (bzw. alle Messwerte der Anpassung stehen hier)
-        - *_Emis_End.txt - Sammlung der Angepassten Emissionsgrade
-    Zudem wird die Versionsnummer (von GitHub) ausgelesen und der Ordner für die Datein wird erstellt. Die Namen (Ordner und File) richten sich nach dem Datum und werden vom Programm erzeugt. Der Index für den Filenamen wird immer anhand der vorhandenen Filenamen erzeugt und ist fortlaufend von 1.
+        - *_Emis_End.txt - Sammlung der Angepassten Emissionsgrade (16 Wert einer Anpassung)
+    Zudem wird die Versionsnummer (von GitHub) ausgelesen und der Ordner für die Dateien wird erstellt. Die Namen (Ordner und File) richten sich nach dem Datum und werden vom Programm erzeugt. Der Index für den Filenamen wird immer anhand der vorhandenen Filenamen erzeugt und ist fortlaufend von 1.
     - **fenster_GUI()**   
     In dieser Funktion wird die GUI (Schaltoberfläche) für das Programm erzeugt. Wie oben schon erwähnt ist der große Teil aus dem alten Programm. 
     Geblieben ist:
@@ -50,6 +50,7 @@ Das Programm basiert auf dem erarbeiteten Programm aus meinem Praktikum. So wurd
         
         - Temperatur Daten werden in File *temp.txt eingetragen
         - Graph wird aktualisiert (Autoscaling und Daten)
+	- Bei Betätigen des "Graph I/O" Knopfes und des Anhalten des Graphen somit, wird bei Beendigung des Programms die Bild Datei "*temp_Bild_Rezept_End.png" erstellt. Das Layout dieses Bildes ist das selbe wie für "*temp_Bild.png". Am Ende wird so ein vollständiges Bild erzeugt und zudem das angehaltene Diagramm auch gespeichert. Dies wurde eingeführt, da im Praktikum die Graphen immer zu unterschiedlichen Zeiten einfach hingen blieben und erst geupdatet wurden, wenn die Maus bewegt wurde. 
     - **Update_Graph(Kurve, Update_Y)**   
     Diese Funktion stammt aus dem alten Programm und updatet die x- und y-Daten des jeweiligen Graphen. Diese Funktion existiert um Redundanz zu vermeiden, jedoch ist sie hier nur noch für die Heizer zuständig. Die Adafruit Module und Pyrometer haben dies in ihrem Objekt mit drin. 
     - **AutoScroll(Graph, AutoStop, xVon, xEnde, yVon, yEnde, minusY, plusY)**   
@@ -73,12 +74,13 @@ Das Programm basiert auf dem erarbeiteten Programm aus meinem Praktikum. So wurd
     Diese Funktion wird durch den Start-Knopf aktiviert und tut folgendes:    
         - Ruft Init_File() auf
         - Startet die IKA Heizplatte wenn ausgewählt
-        - Erstellt die Grafik für Temperatur- und Emissionsgradmessung
+        - Erstellt die Grafik für Temperatur- und Emissionsgradmessung (bei Arduino/Eurotherm auch Leistungsmessung)
             - Live-Plot
     - **Stop()**    
     Diese Funktion wird durch den Beenden-Knopf aktiviert oder wenn das Rezept beendet ist. Folgendes wird hier erreicht:   
         - Stoppt die IKA Heizplatte wenn ausgewählt
         - speichert die Grafik die offen ist     
+        - setzt den Sollwert (bei Eurotherm Auswahl) auf 20 °C und fragt um ihn zusetzten (bei Arduino) noch mal den OP (Leistungswert) ab
     
     *Sonstiges:*
     1. Parameterliste wird eingelesen
@@ -87,25 +89,26 @@ Das Programm basiert auf dem erarbeiteten Programm aus meinem Praktikum. So wurd
         - -debug    - Startet Debug Funktion   
         - -dt Zahl  - Abtastrate zu Beginn ändern
         - -log      - Erzeugt eine Log Datei mit allen Ereignissen
-    3. Test- und Debug-Funktion wird für die Geräte bestimmt
+    3. Test- und Debug-Funktion wird für die Geräte bestimmt und an deren Bibliotheken übergeben
     4. Log-datei wird erstellt wenn -log durch Konsolen Eingabe gestartet wird
+        - Übergabe des Loggings an die Geräte Bibliotheken
     5. Geräte werden initialisiert 
     6. Rezept wird eingelesen
-    7. GUi wird gestartet             
+    7. GUI wird gestartet             
 
 2. **config_Parameter.yml**   
 Diese Datei wird von Hauptprogramm mithilfe der Python Bibliothek yaml ausgelesen. In der Datei befinden sich viele Dictioneries. In dieser Datei stehen die Initialisierungsparameter für die Geräte und weitere Strings (wie der Name der Rezeptdatei und des Regelsensors). Auch die Heizer Auswahl und die Anzahl an Messgeräten kann man über die Datei regeln. Wenn man ein Gerät während der Messung nicht haben möchte, so kann man in dieser Datei das gesamte Gerät einfach auskommentieren und somit würde das Gerät nicht im Programm genutzt werden. 
 
 3. **heizer.py**     
-In der Datei befinden sich alle Befehle für die beiden derzeitigen Heizer. Die Funktionen für die Heizplatte von IKA stammen aus dem Praktikum. Die Funktionen für den Eurotherm sind neu und werden später noch erläutert. 
+In der Datei befinden sich alle Befehle für die beiden derzeitigen Heizer. Die Funktionen für die Heizplatte von IKA stammen aus dem Praktikum. Die Funktionen für den Eurotherm sind neu und werden später noch erläutert (Ordner "Infos"). 
 
-    Im laufe der Bearbeitung, auf Grund von Fehlern, wurde eine Emulation für Eurotherm entwickelt. Dieses Arduino Programm kann einerseits das Eurotherm Gerät ersetzen oder andererseits nur die Leistungssteuerung der Heizplatte übernehmen. 
+    Im laufe der Bearbeitung, auf Grund von Fehlern, wurde eine Emulation für Eurotherm entwickelt. Dieses Arduino Programm kann einerseits das Eurotherm Gerät ersetzen oder andererseits nur die Leistungssteuerung der Heizplatte bzw. die Leistungsausgabe für den Grafitheizer übernehmen. 
 
 4. **pyrometer.py**    
 Im Praktikums Programm waren die kurz- und langwelligen Pyrometer getrennt von einander. In diesem sind die Funktionen nun in einer Datei. Die Funktionen wurden mir vom IKZ gegeben.
 
 5. **adafruit.py**    
-Auch die Funktionen stammen aus dem Praktikum. Später wird noch die Quelle bzw. der Ort des Programms genannt. 
+Auch die Funktionen stammen aus dem Praktikum. Später wird noch die Quelle bzw. der Ort des Programms genannt (Ordner "Infos"). 
 
     Um die Module initialisieren zu können benötigt man die GPIO Adresse an dem das Modul befestigt ist (Pin am Raspberry Pi). Über die Yaml Datei ist dies in der Weise wie man es brauch (so z.B.: board.D16) nicht übergebbar, da es als String übergeben wird. Die Lösung ist hier ein Dictionarie mit allen Adressen (Pin-belegungen für GPIO). Der Schlüssel wird über die Yaml Datei übergeben und das Programm holt sich den richtigen Wert.
 
@@ -128,7 +131,7 @@ Neu in dem Programm ist:
     - Im alten Programm konnte man die Rezepte nur mit -cfg name im Konsolenfenster starten, nun übergibt man den Namen des Rezeptes über die Parameterliste.
     - Das neue Programm wurde um alle Manuellen Eingabemöglichkeiten erleichtert, das bedeutet das die Schaltoberfläche (GUI) verringert wird.   
     Raus fliegen tut z.B. die Eingabe des Emissionsgrades und der Sollwerttemperatur, da diese über das Rezept geändert und vorgegeben werden. 
-    - Auch der Stop Knopf wurde entfernt, nun gibt es nur noch Start und Beenden.
+    - Auch der Stopp Knopf wurde entfernt, nun gibt es nur noch Start und Beenden.
 
 ### 1.4. GUI
 Auch die GUI wurde angepasst aus dem vorigen Programm. Viele Teile der GUI wurden entfernt und nur noch Rezept spezifische Befehle sind geblieben. Kurz gesagt alles was eine Manuelle Änderung am Sollwert oder Emissionsgrad vornimmt wurde entfernt.    
@@ -139,7 +142,7 @@ Die neue GUI sieht wie folgt aus:
 Wenn man die Knöpfe betätigt werden folgende Notizen frei:
 <img src="Bilder/GUI_Text.png" alt="Schaltoberfläche" title='GUI mit Text' width=700/> 
 
-Die GUI wird durch die python Bibliothek **tkinter** erzeugt. Für diese GUI werden in dem Programm die Positionen Fix vom Programmierer festgelegt. Um die einzelnen Bauteile (Knöpfe, Labels und Eingabefelder) zu positionieren nennt man dem Programm die x- und y-Koordinaten und die Höhe und Breite der Bauteile. 
+Die GUI wird durch die Python Bibliothek **tkinter** erzeugt. Für diese GUI werden in dem Programm die Positionen Fix vom Programmierer festgelegt. Um die einzelnen Bauteile (Knöpfe, Labels und Eingabefelder) zu positionieren nennt man dem Programm die x- und y-Koordinaten und die Höhe und Breite der Bauteile. 
 
 **ACHTUNG:** Von Betriebssystem zu Betriebssystem kann sich die GUI verändern!
 
@@ -154,7 +157,7 @@ Die GUI wird durch die python Bibliothek **tkinter** erzeugt. Für diese GUI wer
     2. Wenn die IKA Heizplatte ausgewählt wurde, wird diese Gestartet
     3. Erzeuge die Grafik
     4. nStart = True
-        - diese Variable ist zu Beginn auf False gesetzt, solange diese False ist wird die Funktion task() überspringen und alle 10 ms prüfen ob sich dies geändert hat, dadurch kann die Messungen solange nicht beginnen, solange Start nicht betätigt wurde
+        - diese Variable ist zu Beginn auf False gesetzt, solange diese False ist wird die Funktion task() übersprungen und alle 10 ms prüfen ob sich dies geändert hat, dadurch kann die Messungen solange nicht beginnen, solange Start nicht betätigt wurde
         - die Funktionen save(), Stop() und get_Measurment() können bei nStart = False nichts tun
         - Sobald es auf True steht werden die anderen Funktionen freigeschaltet und die Funktion Start() wird verriegelt
 4. Beenden   
@@ -203,6 +206,8 @@ In dem Ordner "Beispiel Datein" liegt ein Beispiel für ein Messrezept und für 
 
 *Bei dem Namen der Dateien muss dann nur das "Beispiel_" entfernt werden!*
 
+Weiterhin gibt es hier auch Bilder des Diagramms sowie die Text-Datei.
+
 **Rezepte:**   
 Ein Rezept besteht aus vielen Zyklen. Jeder Zyklus besteht aus drei Werten - der zu erreichenden Solltemperatur, die Abweichung zu dem Sollwert und wie lange in dem Sollwertbereich sich der Istwert befinden muss.  
 
@@ -213,7 +218,7 @@ zy1: 50,0.5,20
 * um in den nächsten Zyklus zu springen, bleibe 20 min in dem Sollwertbereich
 
 **Konsolenstart Möglichkeiten**:   
-Programm sind auch über eine Konsole (z.B. PowerShell) start bar. Mit der python Bibliothek argparse können mit dem Start eines Programms besondere Ereignisse ermöglicht werden. Folgend werden diese erläutert:   
+Programm sind auch über eine Konsole (z.B. PowerShell) start bar. Mit der Python Bibliothek argparse können mit dem Start eines Programms besondere Ereignisse ermöglicht werden. Folgend werden diese erläutert:   
 1. -h, --help
     - damit werden alle möglichen Startextras angezeigt
     - zudem wird das Programm beendet
@@ -250,6 +255,19 @@ Nach betätigen von Start:
 <img src="Bilder/Konsolen_Fenster_2.png" alt="Konsole" title='Konsolenausgabe bei Anpassung' width=700/>        
 Zu Beginn einer Anpassung wird als nächstes die Endzeit genannt. Darauf folgenden dann die Veränderungen der Emissionsgrade an den Pyrometern. 
 
+**Weitere Konsolen Eintragungen:**     
+<img src="Bilder/Konsole_Save.png" alt="Konsole" title='Konsolenausgabe bei Zwischensicherung' width=300/> 
+Immer wenn man auf dem Bild speichern Knopf drückt, wird die Datei die erstellt wurde in der Konsole angezeigt. 
+
+Besondere Ausgaben werden auch im Test und Debug Modus ausgegeben.  
+
+**Konsole im Test-Modus:**    
+<img src="Bilder/Konsolen_Fenster_Test-Modus_2.png" alt="Konsole" title='Konsolenausgabe im Test-Modus - Beginn' width=300/>      
+<img src="Bilder/Konsolen_Fenster_Test-Modus_1.png" alt="Konsole" title='Konsolenausgabe im Test-Modus - Anpassung' width=300/>  
+
+**Konsole im Debug-Modus:**      
+Im Debug Modus werden Befehle an die Geräte und Besondere Zustände wie die Fehlermeldung bei Eurotherm ausgegeben in der Konsole.     
+
 ### 1.7. Parameterliste
 In dem Ordner "Beispiel Datein" ist die Liste zu finden. 
 
@@ -263,13 +281,13 @@ Zunächst werden die gesamten Geräte erstellt. Durch anfügen von Geräten, sow
 - beim Heizer wird die **Auswahl** durch einen **String** getroffen
 - bei Eurotherm brauch man noch mehr Parameter, diese sind unter **Eurotherm** zu finden
 - die Emulation mit Arduino für Eurotherm hat andere PID-Parameter und Schnittstellenparameter (PID bei Arduino über k_i, k_d und k_p)
-- **Delay** muss jenach Anwendung verändert werden (Arduino bracuh 0,4 s für einen Befehl, durch die eingebaute LED)
-- Wenn man Arduino und Eurotherm bverwendet, muss man die Schnittstelle für Arduino unter **Emulation** angeben, durch das setzten von **Wahrheit** auf True wird diese Variante eingeschaltet
+- **Delay** muss jenach Anwendung verändert werden (Arduino bracuh 0,4 s für einen Befehl, durch die eingebaute LED --> Am besten 0,5 s angeben als Delay)
+- Wenn man Arduino und Eurotherm verwendet, muss man die Schnittstelle für Arduino unter **Emulation** angeben, durch das setzten von **arduino_in** auf True wird diese Variante eingeschaltet
 
 ---
 
 ## 2. Mögliche Fehler der Geräte + Fehlermeldungen vom Gerät
-Im Laufe meines Praktikums sind verschiedene Fehler aufgetreten. Ein Grund für die nicht Antwort der Geräte könnte die schiere masse an Befehlen gewesen sein die das Gerät überfordert hat. Bisher haben nur die IKA Heizplatte und die Langwelligen Pyrometer fehlerhafte Werte zurückgegeben. Die erste Lösung war die Werte anzufangen und das Programm danach nicht vollständig auszuführen, die neue Idee ist es den Fehler abzufangen und die Sendung des Befehls zu wiederholen. 
+Im Laufe meines Praktikums sind verschiedene Fehler aufgetreten. Ein Grund für die nicht Antwort der Geräte könnte die schiere Masse an Befehlen gewesen sein die das Gerät überfordert hat. Bisher haben nur die IKA Heizplatte und die Langwelligen Pyrometer fehlerhafte Werte zurückgegeben. Die erste Lösung war die Werte abzufangen und das Programm danach nicht vollständig auszuführen, die neue Idee ist es den Fehler abzufangen und die Sendung des Befehls zu wiederholen. Bis jetzt sind keine Fehler aufgetreten, Eurotherm und Arduino verlangsammen das Programm ungemein.
 
 Bei dem Eurotherm Gerät kann man den Fehler mithilfe von dem Mnemonic **EE** abfragen. 
 
@@ -282,7 +300,7 @@ Diese Meldung heißt das es kein Problem mit dem Befehl gab.
 2. 02    
 Dieser Fehler zeigt an das es einen BCC Error gibt. Das bedeutet, dass der BCC Wert den man beim senden geschickt hat falsch ist.
 3. 08   
-Damit wird ein Limit Error angegeben. Bei der Sollwerttemperatur bedeutet es das die beiden Sollwertgrenzen nicht richtig eingestellt sind. Diese sind nur über das Gerät auslesbar mit den Befehlen **HS** (max. Sollwert) und **LS** (min. Sollwert). Wie man die Grenzen ändern kann siehe Kapitel 6.1.
+Damit wird ein Limit Error angegeben. Bei der Sollwerttemperatur bedeutet es das die beiden Sollwertgrenzen nicht richtig eingestellt sind. Diese sind nur über das Gerät auslesbar mit den Befehlen **HS** (max. Sollwert) und **LS** (min. Sollwert). Wie man die Grenzen ändern kann siehe (Ordner "Infos" - "Einstellungen_an_Geräten.md").
 4. 1F    
 Der Fehlercode sagt das bei dem Befehl der zweite UID Wert nicht stimmt. Der UID Wert wird wegen Validierungs Zwecken zweimal gesendet. 
 5. 01     
@@ -290,7 +308,7 @@ Dieser Fehler gibt an das der Mnemonic Befehl ist Invalid.
 6. 04     
 Der Fehler bedeutet das der Befehl "Read Only" ist.    
 7. 22    
-Dies sagt das der parameter der gelesen werden soll noch nicht eingesetllt/konfiguriert ist.
+Dies sagt das der Parameter der gelesen werden soll noch nicht eingesetllt/konfiguriert ist.
 
 Die Fehlermeldungen kann man auf der S. 26 des Dokumentes "900comms_023776_2_1.pdf" nach lesen (unter 3.1.1.) kann man auch die Internetseite finden von dem das PDF stammt.
 
@@ -308,3 +326,4 @@ Auch die Heizplatte macht Probleme. Sowohl das angeschlossene Widerstandsthermom
 
 Zum anderen stürzt die Platte ab wenn man den externen Sensor entfernt und wenn der Istwert eine Temperatur von ca. 360 °C erreicht. Das letztere ist aber eine Funktion der Platte zum Schutz des Sensors und kann im Datenblatt nachgewiesen werden. Dies ist einer der Gründe warum das Experiment nun über den Eurotherm und der Test-CZ Anlage durchgeführt werden soll.  
 
+Die Heizplatte wurde nicht in meiner Bachelor-Arbeit weiter verwendet.
