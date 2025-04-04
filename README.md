@@ -4,7 +4,7 @@
 
 Scripts for controlling heating devices and temperature sensors.
 
-These programs were created during Vincent Funke's Bachelor's thesis (in German) "Resistive and inductive heating in a crystal growth furnace: automation using Python and measurements of electromagnetic parameters" (see [Documents](#Documents)). The [Model Experiments Group](https://www.ikz-berlin.de/en/research/materials-science/section-fundamental-description-1) at the Institute for Crystal Growth (IKZ) was supported in this work.
+These programs were created during Vincent Funke's Bachelor's thesis (in German) "Resistive und induktive Heizung in einer Kristallzüchtungsanlage: Automatisierung mit Python und Vermessung der elektromagnetischen Parameter" (see [Documents](#Documents)). The [Model Experiments Group](https://www.ikz-berlin.de/en/research/materials-science/section-fundamental-description-1) at the Institute for Crystal Growth (IKZ) was supported in this work.
 
 The programs are based on the predecessor model [exp-T-control](https://github.com/nemocrys/exp-T-control). The emulation with the Arduino and the use of Eurotherm are the changes to the predecessor model. In addition, improvements have been made to the programming of the main programs and device libraries.
 
